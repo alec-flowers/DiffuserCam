@@ -1,7 +1,6 @@
 import numpy as np
 from time import process_time
 
-
 def autocorr2d(vals, pad_mode="reflect"):
     """
     Compute 2-D autocorrelation of image via the FFT.
