@@ -2,6 +2,14 @@ import cv2
 import csv
 import numpy as np
 from diffcam.constants import RPI_HQ_CAMERA_CCM_MATRIX, RPI_HQ_CAMERA_BLACK_LEVEL
+import pathlib
+
+REPO_ROOT = pathlib.Path(__file__).absolute().parents[1].resolve()
+assert (REPO_ROOT.exists())
+DATAPATH = (REPO_ROOT / "data").absolute().resolve()
+assert (DATAPATH.exists())
+RECONSTRUCTIONPATH = (DATAPATH / "reconstruction").absolute().resolve()
+assert (RECONSTRUCTIONPATH.exists()), "Create a folder named 'reconstruction' under the data folder. This is where our reconstructed images are saved."
 
 
 SUPPORTED_BIT_DEPTH = np.array([8, 10, 12, 16])
