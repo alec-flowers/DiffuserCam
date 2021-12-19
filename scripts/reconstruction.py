@@ -22,7 +22,7 @@ from datetime import datetime
 from diffcam.io import load_data
 from diffcam.util import DATAPATH, RECONSTRUCTIONPATH
 
-from scripts.optimization import lasso, ridge, nnls
+from scripts.optimization import lasso, ridge, nnls, glasso, pls
 
 def reconstruction(
     psf_fp,
@@ -63,12 +63,22 @@ def reconstruction(
     
     if algo == "ridge":
         estimate, converged, diagnostics = ridge(psf, data, n_iter)
+        estimate = estimate['iterand'].reshape(data.shape)
     elif algo == "lasso":
         estimate, converged, diagnostics = lasso(psf, data, n_iter)
+        estimate = estimate['iterand'].reshape(data.shape)
     elif algo == "nnls":
         estimate, converged, diagnostics = nnls(psf, data, n_iter)
+        estimate = estimate['iterand'].reshape(data.shape)
+    elif algo == "glasso":
+        estimate, converged, diagnostics = glasso(psf, data, n_iter)
+        estimate = estimate['iterand'].reshape(data.shape)
+    elif algo == "pls":
+        estimate, converged, diagnostics = pls(psf, data, n_iter)
+        estimate = estimate['primal_variable'].reshape(data.shape)
 
-    estimate = estimate['iterand'].reshape(data.shape)
+
+    
 
     plt.figure()
     plt.imshow(estimate, cmap='gray')
@@ -83,8 +93,8 @@ if __name__ == "__main__":
 
     psf_fp = str(DATAPATH) + '/psf/diffcam_rgb.png'
     data_fp = str(DATAPATH) + '/raw_data/thumbs_up_rgb.png'
-    algo = 'nnls'
-    n_iter = 50
+    algo = 'pls'
+    n_iter = 250
     gray = True
     downsample = 4
     disp = 50
