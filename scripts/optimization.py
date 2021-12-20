@@ -73,20 +73,24 @@ def nnls(psf, data, n_iter):
 
     return estimate, converged, diagnostics
 
+
 def glasso(psf, data, n_iter):
     '''
-    Performs an image reconstruction with a generalized LASSO probleme with type2 DCT : DOES NOT WORK YET
+    Performs an image reconstruction with a generalized LASSO probleme with type2 DCT.
     '''
+
     start_time = time.time()
+
+    dct2 = DCT2(data.shape)
+    idct2 = dct2.get_adjointOp()
 
     Hop = Convolve2D(size=data.size, filter=psf, shape=data.shape, method='fft')
     Hop.compute_lipschitz_cst(tol=5e-1)
 
     l22_loss = (1 / 2) * SquaredL2Loss(dim=Hop.shape[0], data=data.flatten())
-    IDCT =  IDCT2(shape=data.shape)
-    IDCT.compute_lipschitz_cst(tol=5e-1)
-    F = l22_loss  * Hop * IDCT
-    lambda_ = 0.1
+    idct2.compute_lipschitz_cst(tol=5e-1)
+    F = l22_loss * Hop * idct2
+    lambda_ = 1e-10
     G = lambda_ * L1Norm(dim=Hop.shape[0]) 
 
     apgd = APGD(dim=Hop.shape[1], F=F, G=G, acceleration='CD', verbose=None,
@@ -96,11 +100,11 @@ def glasso(psf, data, n_iter):
 
     start_time = time.time()
     estimate, converged, diagnostics = apgd.iterate()
-    DCT =  IDCT2(shape=data.shape) 
-    estimate['iterand'] = DCT * estimate['iterand']
+    estimate['iterand'] = idct2(estimate['iterand'])
     print(f"proc time : {time.time() - start_time} s")
 
     return estimate, converged, diagnostics
+
 
 def pls(psf, data, n_iter):
     '''

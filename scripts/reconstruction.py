@@ -11,7 +11,6 @@ python scripts/reconstruction.py --psf_fp data/psf/diffcam_rgb.png \
 ```
 
 """
-
 import os
 import time
 import pathlib as plib
