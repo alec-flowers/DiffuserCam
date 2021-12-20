@@ -7,7 +7,7 @@ from pycsou.opt.proxalgs import APGD, PDS
 from pycsou.linop.diff import Gradient
 
 from scripts.DCT2 import DCT2, IDCT2
-from scipy.fftpack import dctn
+from scipy.fftpack import dctn, idctn
 
 def lasso(psf, data, n_iter):
     start_time = time.time()
@@ -83,11 +83,10 @@ def glasso(psf, data, n_iter):
     Hop.compute_lipschitz_cst(tol=5e-1)
 
     l22_loss = (1 / 2) * SquaredL2Loss(dim=Hop.shape[0], data=data.flatten())
-    IDCT =  IDCT2(shape=Hop.shape) #size = data.size, type=2,  shape=Hop.shape
+    IDCT =  IDCT2(shape=data.shape)
     IDCT.compute_lipschitz_cst(tol=5e-1)
-    F = l22_loss * Hop * IDCT
+    F = l22_loss  * Hop * IDCT
     lambda_ = 0.1
-    #D = DCT2(size = data.size,type = 2)
     G = lambda_ * L1Norm(dim=Hop.shape[0]) 
 
     apgd = APGD(dim=Hop.shape[1], F=F, G=G, acceleration='CD', verbose=None,
@@ -97,7 +96,8 @@ def glasso(psf, data, n_iter):
 
     start_time = time.time()
     estimate, converged, diagnostics = apgd.iterate()
-    estimate['iterand'] = dctn(estimate['iterand'], type = 2, norm = 'ortho')
+    DCT =  IDCT2(shape=data.shape) 
+    estimate['iterand'] = DCT * estimate['iterand']
     print(f"proc time : {time.time() - start_time} s")
 
     return estimate, converged, diagnostics

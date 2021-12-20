@@ -93,8 +93,8 @@ if __name__ == "__main__":
 
     psf_fp = str(DATAPATH) + '/psf/diffcam_rgb.png'
     data_fp = str(DATAPATH) + '/raw_data/thumbs_up_rgb.png'
-    algo = 'pls'
-    n_iter = 250
+    algo = 'glasso'
+    n_iter = 100
     gray = True
     downsample = 4
     disp = 50
