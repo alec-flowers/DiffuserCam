@@ -21,7 +21,7 @@ from datetime import datetime
 from diffcam.io import load_data
 from diffcam.util import DATAPATH, RECONSTRUCTIONPATH
 
-from scripts.optimization import lasso, ridge, nnls, glasso, pls
+from scripts.optimization import lasso, ridge, nnls, glasso, pls, pls_huber
 
 def reconstruction(
     psf_fp,
@@ -75,7 +75,9 @@ def reconstruction(
     elif algo == "pls":
         estimate, converged, diagnostics = pls(psf, data, n_iter)
         estimate = estimate['primal_variable'].reshape(data.shape)
-
+    elif algo == "pls_huber":
+        estimate, converged, diagnostics = pls_huber(psf, data, n_iter)
+        estimate = estimate['iterand'].reshape(data.shape)
 
     
 
@@ -92,8 +94,8 @@ if __name__ == "__main__":
 
     psf_fp = str(DATAPATH) + '/psf/diffcam_rgb.png'
     data_fp = str(DATAPATH) + '/raw_data/thumbs_up_rgb.png'
-    algo = 'glasso'
-    n_iter = 100
+    algo = 'pls_huber'
+    n_iter = 200
     gray = True
     downsample = 4
     disp = 50
