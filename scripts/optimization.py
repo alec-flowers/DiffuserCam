@@ -6,8 +6,9 @@ from pycsou.func.penalty import SquaredL2Norm, L2Norm, L1Norm, NonNegativeOrthan
 from pycsou.opt.proxalgs import APGD, PDS
 from pycsou.linop.diff import Gradient
 
-from scripts.DCT2 import DCT2, IDCT2
+from scripts.functionals import DCT2, HuberNorm
 from scipy.fftpack import dctn, idctn
+
 
 def lasso(psf, data, n_iter):
     start_time = time.time()
@@ -129,6 +130,35 @@ def pls(psf, data, n_iter):
 
     start_time = time.time()
     estimate, converged, diagnostics = pds.iterate() 
+    print(f"proc time : {time.time() - start_time} s")
+
+    return estimate, converged, diagnostics
+
+
+def pls_huber(psf, data, n_iter):
+    '''
+    Performs an image reconstruction with a penalised least squares probleme
+    TV + Non-negativity prior + differentiable HuberNorm
+    '''
+    start_time = time.time()
+    Hop = Convolve2D(size=data.size, filter=psf, shape=data.shape, method='fft')
+    Hop.compute_lipschitz_cst(tol=5e-1)
+    D = Gradient(shape = data.shape)
+    D.compute_lipschitz_cst(tol=5e-1)
+
+
+    lambda_ = 0.01
+    delta = 5
+    l22_loss = (1 / 2) * SquaredL2Loss(dim=Hop.shape[0], data=data.flatten())
+    F = l22_loss * Hop + lambda_ * HuberNorm(dim=D.shape[0], delta=delta) * D  # Differentiable function
+    G = NonNegativeOrthant(dim=Hop.shape[0])
+
+    apgd = APGD(dim=Hop.shape[1], F=F, G=G, acceleration='CD', verbose=None,
+                min_iter=1, max_iter=n_iter, accuracy_threshold=0.0001)
+    print(f"setup time : {time.time() - start_time} s")
+
+    start_time = time.time()
+    estimate, converged, diagnostics = apgd.iterate()
     print(f"proc time : {time.time() - start_time} s")
 
     return estimate, converged, diagnostics
