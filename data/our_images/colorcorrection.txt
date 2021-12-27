@@ -1,0 +1,17 @@
+Color-correction values:
+
+img1: bg = 1.55, rg = 1.45
+
+img2: bg = 1.2, rg = 1.65
+
+img3: bg = 1.15, rg = 0.85
+
+img4: bg = 1.25, rg = 1.9
+
+img5: bg = 1.2, rg = 1.75
+
+img6: bg = 1.25, rg = 1.95
+
+img7: bg = 0.95, rg = 2.35
+
+img8: bg = 1.4, rg = 1.75
