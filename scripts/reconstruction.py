@@ -20,6 +20,7 @@ import numpy as np
 from datetime import datetime
 from diffcam.io import load_data
 from diffcam.util import DATAPATH, RECONSTRUCTIONPATH
+from diffcam.plot import plot_image
 
 from scripts.optimization import lasso, ridge, nnls, glasso, pls, pls_huber
 
@@ -53,36 +54,48 @@ def reconstruction(
         gray=gray,
         single_psf=single_psf,
     )
-
     if disp < 0:
         disp = None
     if save:
         timestamp = datetime.now().strftime("_%d%m%d%Y_%Hh%M")
         save = RECONSTRUCTIONPATH / str(algo + '_' + str(n_iter) + timestamp + '.png')
-    
-    if algo == "ridge":
-        estimate, converged, diagnostics = ridge(psf, data, n_iter)
-        estimate = estimate['iterand'].reshape(data.shape)
-    elif algo == "lasso":
-        estimate, converged, diagnostics = lasso(psf, data, n_iter)
-        estimate = estimate['iterand'].reshape(data.shape)
-    elif algo == "nnls":
-        estimate, converged, diagnostics = nnls(psf, data, n_iter)
-        estimate = estimate['iterand'].reshape(data.shape)
-    elif algo == "glasso":
-        estimate, converged, diagnostics = glasso(psf, data, n_iter)
-        estimate = estimate['iterand'].reshape(data.shape)
-    elif algo == "pls":
-        estimate, converged, diagnostics = pls(psf, data, n_iter)
-        estimate = estimate['primal_variable'].reshape(data.shape)
-    elif algo == "pls_huber":
-        estimate, converged, diagnostics = pls_huber(psf, data, n_iter)
-        estimate = estimate['iterand'].reshape(data.shape)
 
-    
+    if gray:
+        psf = psf[:, :, np.newaxis]
+        data = data[:, :, np.newaxis]
+
+    estimates = []
+    for i in range(psf.shape[2]):
+        psf_c = psf[:, :, i]
+        data_c = data[:, :, i]
+        if algo == "ridge":
+            estimate, converged, diagnostics = ridge(psf_c, data_c, n_iter)
+            estimates.append(estimate['iterand'].reshape(data.shape[0:2]))
+        elif algo == "lasso":
+            estimate, converged, diagnostics = lasso(psf_c, data_c, n_iter)
+            estimates.append(estimate['iterand'].reshape(data.shape[0:2]))
+        elif algo == "nnls":
+            estimate, converged, diagnostics = nnls(psf_c, data_c, n_iter)
+            estimates.append(estimate['iterand'].reshape(data.shape[0:2]))
+        elif algo == "glasso":
+            estimate, converged, diagnostics = glasso(psf_c, data_c, n_iter)
+            estimates.append(estimate['iterand'].reshape(data.shape[0:2]))
+        elif algo == "pls":
+            estimate, converged, diagnostics = pls(psf_c, data_c, n_iter)
+            estimates.append(estimate['primal_variable'].reshape(data.shape[0:2]))
+        elif algo == "pls_huber":
+            estimate, converged, diagnostics = pls_huber(psf_c, data_c, n_iter)
+            estimates.append(estimate['iterand'].reshape(data.shape[0:2]))
 
     plt.figure()
-    plt.imshow(estimate, cmap='gray')
+    if gray:
+        reconstruction = np.array(estimates).squeeze()
+        plt.imshow(reconstruction, cmap='gray')
+    else:
+        reconstruction = np.array(estimates).swapaxes(0,2).swapaxes(0,1)
+        #plt.imshow(reconstruction)
+        ax = plot_image(reconstruction)
+
     if save:
         plt.savefig(save, format='png')
         print(f"Files saved to : {save}")
@@ -94,9 +107,9 @@ if __name__ == "__main__":
 
     psf_fp = str(DATAPATH) + '/psf/diffcam_rgb.png'
     data_fp = str(DATAPATH) + '/raw_data/thumbs_up_rgb.png'
-    algo = 'pls_huber'
-    n_iter = 200
-    gray = True
+    algo = 'lasso'
+    n_iter = 100
+    gray = False
     downsample = 4
     disp = 50
     flip = False
@@ -104,7 +117,7 @@ if __name__ == "__main__":
     bg = None
     rg = None
     gamma = None
-    save = True
+    save = False
     plot = True
     single_psf = False
 

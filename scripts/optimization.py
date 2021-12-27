@@ -35,10 +35,9 @@ def lasso(psf, data, n_iter):
 
 def ridge(psf, data, n_iter):
     start_time = time.time()
-
     Hop = Convolve2D(size=data.size, filter=psf, shape=data.shape, method='fft')
     Hop.compute_lipschitz_cst(tol=5e-1)
-
+    a = Hop.shape
     lambda_ = 0.1
     l22_loss = (1 / 2) * SquaredL2Loss(dim=Hop.shape[0], data=data.flatten())
     F = l22_loss * Hop + lambda_ * SquaredL2Norm(dim=Hop.shape[0])
