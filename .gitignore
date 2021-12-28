@@ -137,6 +137,5 @@ dmypy.json
 .pyre/
 
 /diffcam/test.ipynb
-/data/reconstruction
 /data/MirFlickr
 .vs
