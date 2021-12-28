@@ -8,6 +8,7 @@ import glob
 import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
+from time import process_time
 
 from diffcam.plot import plot_image
 from diffcam.io import load_psf, load_image
@@ -132,7 +133,11 @@ def evaluate(data,
             log.add_param('recon_fp', save)
             log.add_param('ucrop_recon_fp', save_uncropped)
 
+        start = process_time()
         estimate, _, _ = optimize(algo, psf, lenseless, n_iter, lambda_, delta)
+        stop = process_time()
+        log.add_img_param("process_time", stop - start)
+
         if algo == 'pls':
             estimate = estimate['primal_variable'].reshape(lenseless.shape)
         else:
@@ -147,8 +152,10 @@ def evaluate(data,
 
         estimate = estimate[height_crops[0]:height_crops[1], width_crops[0]:width_crops[1]]
         #estimate = (estimate - estimate.min()) / (estimate.max() - estimate.min())
-        print(f"est max: {estimate.max()}")
-        print(f"est min: {estimate.min()}")
+
+        log.add_img_param("est_min", estimate.min())
+        log.add_img_param("est_min", estimate.max())
+
         new_shape = estimate.shape[:2][::-1]
         lensed = cv2.resize(lensed, new_shape, interpolation=cv2.INTER_NEAREST)  # TODO: Check this!
         #lensed = (lensed - lensed.min()) / (lensed.max() - lensed.min())

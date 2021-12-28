@@ -39,8 +39,8 @@ def lpips(true, est, normalize=True, gray=False):
         true = torch.from_numpy(true[np.newaxis,].copy()).float()
         est = torch.from_numpy(est[np.newaxis,].copy()).float()
     else:
-        true = torch.from_numpy(np.transpose(true, axes=(2, 0, 1))[np.newaxis,].copy())
-        est = torch.from_numpy(np.transpose(est, axes=(2, 0, 1))[np.newaxis,].copy())
+        true = torch.from_numpy(np.transpose(true, axes=(2, 0, 1))[np.newaxis,].copy()).float()
+        est = torch.from_numpy(np.transpose(est, axes=(2, 0, 1))[np.newaxis,].copy()).float()
 
     return loss_fn.forward(true, est).squeeze().item()
 
@@ -48,7 +48,7 @@ def lpips(true, est, normalize=True, gray=False):
 class LogMetrics():
     def __init__(self):
         self.save = {}
-
+        self.per_image = {}
         self.mse_scores = []
         self.psnr_scores = []
         self.ssim_scores = []
@@ -57,10 +57,13 @@ class LogMetrics():
     def add_param(self, key, value):
         self.save[key] = value
 
+    def add_img_param(self, key, value):
+        self.per_image[key] = value
+
     def calculate_metrics(self, lensed, estimate):
         self.mse_scores.append(mse(lensed, estimate))
         self.psnr_scores.append(psnr(lensed, estimate))
-        # self.lpips_scores.append(lpips(lensed, estimate, gray=self.save['gray']))  # TODO: Check if grayscale implementation is correct!
+        self.lpips_scores.append(lpips(lensed, estimate, gray=self.save['gray']))  # TODO: Check if grayscale implementation is correct!
 
         # ssim function changed in order to account for grayscale input
         if self.save['gray']:
@@ -69,34 +72,40 @@ class LogMetrics():
             self.ssim_scores.append(ssim(lensed, estimate))
 
     def save_metrics(self, photo):
-        self.add_param(photo, {"mse": self.mse_scores[-1],
-                            "psnr":self.psnr_scores[-1],
-                            "ssim":self.ssim_scores[-1],
-                            # "lpips":self.lpips_scores[-1]
-                            })
+        self.add_img_param("mse", self.mse_scores[-1])
+        self.add_img_param("psnr", self.psnr_scores[-1])
+        self.add_img_param("ssim", self.ssim_scores[-1])
+        self.add_img_param("lpips", self.lpips_scores[-1])
+
+        self.add_param(photo, self.per_image)
+
+        self.reset_per_image()
+
+    def reset_per_image(self):
+        self.per_image = {}
 
     def print_metrics(self):
         print(f"\nMSE: {self.mse_scores[-1]}")
         print(f"\nPSNR: {self.psnr_scores[-1]}")
         print(f"\nSSIM: {self.ssim_scores[-1]}")
-        # print(f"\nLPIPS: {self.lpips_scores[-1]}")
+        print(f"\nLPIPS: {self.lpips_scores[-1]}")
 
     def save_metric_list(self):
         self.add_param("mse", self.mse_scores)
         self.add_param("psnr", self.psnr_scores)
         self.add_param("ssim", self.ssim_scores)
-        #self.add_param("lpips", self.lpips_scores)
+        self.add_param("lpips", self.lpips_scores)
 
     def print_average_metrics(self):
         print("\n-----------------------------\n Average scores \n-----------------------------")
         print("\nMSE (avg)", np.mean(self.mse_scores))
         print("PSNR (avg)", np.mean(self.psnr_scores))
         print("SSIM (avg)", np.mean(self.ssim_scores))
-        #print("LPIPS (avg)", np.mean(self.lpips_scores))
+        print("LPIPS (avg)", np.mean(self.lpips_scores))
 
     def save_logs(self):
         timestamp = datetime.now().strftime("_%d%m%d%Y_%Hh%M")
-        path = os.path.join(str(LOGPATH), f"{self.save['algo']}{timestamp}")
+        path = os.path.join(str(LOGPATH), f"{self.save['algo']}_{self.save['lambda']}{timestamp}")
         print(f"Logs saved to: {path}")
         with open(path+".pkl", 'wb') as f:
             pickle.dump(self.save, f, pickle.HIGHEST_PROTOCOL)
