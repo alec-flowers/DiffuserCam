@@ -3,7 +3,7 @@ import time
 from pycsou.linop.conv import Convolve2D
 from pycsou.func.loss import SquaredL2Loss
 from pycsou.func.penalty import SquaredL2Norm, L2Norm, L1Norm, NonNegativeOrthant
-from pycsou.opt.proxalgs import APGD, H, PDS
+from pycsou.opt.proxalgs import APGD, PDS
 from pycsou.linop.diff import Gradient
 
 from scripts.functionals import DCT2, HuberNorm, OptiConvolve2D
@@ -162,7 +162,7 @@ def pls_huber(psf, data, n_iter):
 
     return estimate, converged, diagnostics
 
-def optimize(method, psf, data, n_iter, lambda_=0.1, delta=None):
+def optimize(method, psf, data, n_iter, lambda_=0.1, delta=1):
     start_time = time.time()
     runner = get_runner(method, psf, data, n_iter, lambda_, delta)
     print(f"setup time : {time.time() - start_time} s")
@@ -173,7 +173,7 @@ def optimize(method, psf, data, n_iter, lambda_=0.1, delta=None):
 
     return estimate, converged, diagnostics
 
-def get_runner(method, psf, data, n_iter, lambda_=0.1, delta=None):
+def get_runner(method, psf, data, n_iter, lambda_, delta):
     Hop = OptiConvolve2D(psf)
     Hop.compute_lipschitz_cst(tol=5e-1)
     loss = (1 / 2) * SquaredL2Loss(dim=Hop.shape[0], data=data.flatten())
@@ -205,6 +205,9 @@ def get_runner(method, psf, data, n_iter, lambda_=0.1, delta=None):
         D.compute_lipschitz_cst(tol=5e-1)
         F += lambda_ * HuberNorm(dim=D.shape[0], delta=delta) * D  # Differentiable function
         G = NonNegativeOrthant(dim=Hop.shape[0])
+    else:
+        estimate = None
+        raise AttributeError("Reconstruction algorithm not defined.")
     
     if method in ["pls"]:
         return PDS(dim=Hop.shape[0], F=F, G=G, H=H, K=D, verbose=None,

@@ -14,12 +14,14 @@ from diffcam.io import load_psf, load_image
 from diffcam.metric import mse, psnr, ssim, lpips, LogMetrics
 from diffcam.util import DATAPATH, RECONSTRUCTIONPATH, print_image_info, resize, rgb2gray
 
-from scripts.optimization import lasso, ridge, nnls, glasso, pls, pls_huber
+from scripts.optimization import lasso, ridge, nnls, glasso, pls, pls_huber, optimize
 
 def evaluate(data,
              n_files,
              psf_fp,
              algo,
+             lambda_,
+             delta,
              n_iter,
              downsample,
              disp,
@@ -42,6 +44,8 @@ def evaluate(data,
     log.add_param('algo', algo)
     log.add_param('n_iter', n_iter)
     log.add_param('gray', n_iter)
+    log.add_param('lambda', lambda_)
+    log.add_param('delta', delta)
 
     # determining data paths
     diffuser_dir = os.path.join(str(DATAPATH), data, "diffuser")
@@ -128,27 +132,11 @@ def evaluate(data,
             log.add_param('recon_fp', save)
             log.add_param('ucrop_recon_fp', save_uncropped)
 
-        if algo == "ridge":
-            estimate, converged, diagnostics = ridge(psf, lenseless, n_iter)
-            estimate = estimate['iterand'].reshape(lenseless.shape)
-        elif algo == "lasso":
-            estimate, converged, diagnostics = lasso(psf, lenseless, n_iter)
-            estimate = estimate['iterand'].reshape(lenseless.shape)
-        elif algo == "nnls":
-            estimate, converged, diagnostics = nnls(psf, lenseless, n_iter)
-            estimate = estimate['iterand'].reshape(lenseless.shape)
-        elif algo == "glasso":
-            estimate, converged, diagnostics = glasso(psf, lenseless, n_iter)
-            estimate = estimate['iterand'].reshape(lenseless.shape)
-        elif algo == "pls":
-            estimate, converged, diagnostics = pls(psf, lenseless, n_iter)
+        estimate, _, _ = optimize(algo, psf, lenseless, n_iter, lambda_, delta)
+        if algo == 'pls':
             estimate = estimate['primal_variable'].reshape(lenseless.shape)
-        elif algo == "pls_huber":
-            estimate, converged, diagnostics = pls_huber(psf, lenseless, n_iter)
-            estimate = estimate['iterand'].reshape(lenseless.shape)
         else:
-            estimate = None
-            raise AttributeError("Reconstruction algorithm not defined.")
+            estimate = estimate['iterand'].reshape(lenseless.shape)
 
         # save and plot un-cropped reconstruction?
         ax = plot_image(estimate, gamma=gamma)
@@ -158,11 +146,12 @@ def evaluate(data,
             print(f"\nFiles saved to : {save_uncropped}")
 
         estimate = estimate[height_crops[0]:height_crops[1], width_crops[0]:width_crops[1]]
-        estimate = (estimate - estimate.min()) / (estimate.max() - estimate.min())
-
+        #estimate = (estimate - estimate.min()) / (estimate.max() - estimate.min())
+        print(f"est max: {estimate.max()}")
+        print(f"est min: {estimate.min()}")
         new_shape = estimate.shape[:2][::-1]
         lensed = cv2.resize(lensed, new_shape, interpolation=cv2.INTER_NEAREST)  # TODO: Check this!
-        lensed = (lensed - lensed.min()) / (lensed.max() - lensed.min())
+        #lensed = (lensed - lensed.min()) / (lensed.max() - lensed.min())
 
         print("\nGround truth shape:", lensed.shape)
         print("Reconstruction shape:", estimate.shape)
