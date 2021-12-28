@@ -34,7 +34,7 @@ if __name__ == "__main__":
         "algo": ['lasso', 'lasso', 'pls_huber', 'pls_huber', 'pls', 'pls'],
         "lambda_": [.01, 1]*3,
         "delta": [1, 10]*3,
-        "n_iter": [500],
+        "n_iter": [5],
         "gray": [False],
         "downsample": [4],
         "disp": [50],

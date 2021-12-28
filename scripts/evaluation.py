@@ -43,7 +43,7 @@ def evaluate(data,
     log.add_param('psf_fp', psf_fp)
     log.add_param('algo', algo)
     log.add_param('n_iter', n_iter)
-    log.add_param('gray', n_iter)
+    log.add_param('gray', gray)
     log.add_param('lambda', lambda_)
     log.add_param('delta', delta)
 
