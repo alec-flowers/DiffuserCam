@@ -105,7 +105,7 @@ class LogMetrics():
 
     def save_logs(self):
         timestamp = datetime.now().strftime("_%d%m%d%Y_%Hh%M")
-        path = os.path.join(str(LOGPATH), f"{self.save['algo']}_{self.save['lambda']}{timestamp}")
+        path = os.path.join(str(LOGPATH), f"{self.save['algo']}_{self.save['lambda']}_{self.save['delta']}{timestamp}")
         print(f"Logs saved to: {path}")
         with open(path+".pkl", 'wb') as f:
             pickle.dump(self.save, f, pickle.HIGHEST_PROTOCOL)
