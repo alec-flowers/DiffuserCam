@@ -138,4 +138,5 @@ dmypy.json
 
 /diffcam/test.ipynb
 /data/reconstruction
+/data/MirFlickr
 .vs
