@@ -60,7 +60,7 @@ class LogMetrics():
     def calculate_metrics(self, lensed, estimate):
         self.mse_scores.append(mse(lensed, estimate))
         self.psnr_scores.append(psnr(lensed, estimate))
-        self.lpips_scores.append(lpips(lensed, estimate, gray=self.save['gray']))  # TODO: Check if grayscale implementation is correct!
+        # self.lpips_scores.append(lpips(lensed, estimate, gray=self.save['gray']))  # TODO: Check if grayscale implementation is correct!
 
         # ssim function changed in order to account for grayscale input
         if self.save['gray']:
@@ -72,26 +72,27 @@ class LogMetrics():
         self.add_param(photo, {"mse": self.mse_scores[-1],
                             "psnr":self.psnr_scores[-1],
                             "ssim":self.ssim_scores[-1],
-                            "lpips":self.lpips_scores[-1]})
+                            # "lpips":self.lpips_scores[-1]
+                            })
 
     def print_metrics(self):
         print(f"\nMSE: {self.mse_scores[-1]}")
         print(f"\nPSNR: {self.psnr_scores[-1]}")
         print(f"\nSSIM: {self.ssim_scores[-1]}")
-        print(f"\nLPIPS: {self.lpips_scores[-1]}")
+        # print(f"\nLPIPS: {self.lpips_scores[-1]}")
 
     def save_metric_list(self):
         self.add_param("mse", self.mse_scores)
         self.add_param("psnr", self.psnr_scores)
         self.add_param("ssim", self.ssim_scores)
-        self.add_param("lpips", self.lpips_scores)
+        #self.add_param("lpips", self.lpips_scores)
 
     def print_average_metrics(self):
         print("\n-----------------------------\n Average scores \n-----------------------------")
         print("\nMSE (avg)", np.mean(self.mse_scores))
         print("PSNR (avg)", np.mean(self.psnr_scores))
         print("SSIM (avg)", np.mean(self.ssim_scores))
-        print("LPIPS (avg)", np.mean(self.lpips_scores))
+        #print("LPIPS (avg)", np.mean(self.lpips_scores))
 
     def save_logs(self):
         timestamp = datetime.now().strftime("_%d%m%d%Y_%Hh%M")

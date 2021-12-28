@@ -119,7 +119,8 @@ def mirflickr_dataset(data, n_files, n_iter, single_psf, save):
             image_data = (est_norm * 255).astype(np.uint8)
             im = Image.fromarray(image_data)
             im.save(output_fn)
-
+        print(f"est min {est.min()}")
+        print(f"est max {est.max()}")
         # compute scores
         lensed_fp = os.path.join(lensed_dir, fn)
         lensed = np.load(lensed_fp)

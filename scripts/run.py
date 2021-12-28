@@ -2,6 +2,7 @@ from diffcam.util import DATAPATH
 from scripts.evaluation import evaluate
 import os
 
+
 def get_max(p):
     length = []
     for key, value in p.items():
@@ -23,26 +24,28 @@ def multiple_runs(parameters):
     log_list = []
     for i in range(get_max(parameters)):
         current = get_current_run(i)
-        log = evaluate(**current) # could save list of dicts but currently are saving a dict for every run
+        log = evaluate(**current)  # could save list of dicts but currently are saving a dict for every run
 
 
 if __name__ == "__main__":
     parameters = {
-        "data" : ['our_images'],
-        "n_files" : [2], # None yields all :-)
-        "algo" : ['ridge', 'lasso', 'pls_huber'],
-        "n_iter" : [10],
-        "gray" : [True],
-        "downsample" : [4],
-        "disp" : [50],
-        "flip" : [False],
-        "bayer" : [False],
-        "bg" : [None],
-        "rg" : [None],
-        "gamma" : [None],
-        "save" : [True],
-        "plot" : [True],
-        "single_psf" : [False],
-        "psf_fp" : [rf'{str(DATAPATH)}{os.sep}psf{os.sep}psf_rgb_ours.png'],
+        "data": ['our_images'],
+        "n_files": [3],  # None yields all :-)
+        "algo": ['lasso', 'lasso', 'pls_huber', 'pls_huber', 'pls', 'pls'],
+        "lambda_": [.01, 1]*3,
+        "delta": [1, 10]*3,
+        "n_iter": [5],
+        "gray": [False],
+        "downsample": [4],
+        "disp": [50],
+        "flip": [False],
+        "bayer": [False],
+        "bg": [None],
+        "rg": [None],
+        "gamma": [None],
+        "save": [True],
+        "plot": [True],
+        "single_psf": [False],
+        "psf_fp": [rf'{str(DATAPATH)}{os.sep}psf{os.sep}psf_rgb_ours.png'],
     }
     multiple_runs(parameters)
