@@ -269,6 +269,8 @@ def evaluate(data,
         ax.set_title("Reconstructed")
         if save:
             plt.savefig(save, format='png')
+            npy_save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.npy')
+            np.save(npy_save, estimate)
             print(f"\nFiles saved to : {save}")
 
         # plot images
