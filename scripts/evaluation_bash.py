@@ -10,19 +10,18 @@ python scripts/evaluation_bash.py --data our_images --psf_fp data/psf/diffcam_rg
 import os
 import cv2
 import time
-import glob
 import click
+import glob
 import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
 
 from diffcam.plot import plot_image
 from diffcam.io import load_psf, load_image
-from diffcam.metric import mse, psnr, ssim, lpips
+from diffcam.metric import mse, psnr, ssim, lpips, LogMetrics
 from diffcam.util import DATAPATH, RECONSTRUCTIONPATH, print_image_info, resize, rgb2gray
 
-from scripts.optimization import lasso, ridge, nnls, glasso, pls, pls_huber
-
+from scripts.optimization import lasso, ridge, nnls, glasso, pls, pls_huber, optimize
 
 @click.command()
 @click.option(
@@ -114,6 +113,8 @@ def evaluate(data,
              n_files,
              psf_fp,
              algo,
+             lambda_,
+             delta,
              n_iter,
              downsample,
              disp,
@@ -135,7 +136,9 @@ def evaluate(data,
     log.add_param('psf_fp', psf_fp)
     log.add_param('algo', algo)
     log.add_param('n_iter', n_iter)
-    log.add_param('gray', n_iter)
+    log.add_param('gray', gray)
+    log.add_param('lambda', lambda_)
+    log.add_param('delta', delta)
 
     # determining data paths
     diffuser_dir = os.path.join(str(DATAPATH), data, "diffuser")
@@ -175,8 +178,23 @@ def evaluate(data,
 
     print("\nLooping through files...")
 
-    height_crops = (180, 420)
-    width_crops = (290, 640)
+    # height crops determined from ADMM reconstructions
+    height_crops = {'img1_rgb': (179, 407),
+                    'img3_rgb': (179, 395),
+                    'img4_rgb': (181, 385),
+                    'img5_rgb': (183, 414),
+                    'img6_rgb': (179, 399),
+                    'img7_rgb': (183, 414),
+                    'img8_rgb': (181, 410)}
+
+    # width crops determined from ADMM reconstructions
+    width_crops = {'img1_rgb': (328, 669),
+                   'img3_rgb': (317, 681),
+                   'img4_rgb': (315, 683),
+                   'img5_rgb': (416, 585),
+                   'img6_rgb': (323, 679),
+                   'img7_rgb': (416, 585),
+                   'img8_rgb': (326, 671)}
 
     for fn in files:
         bn = os.path.basename(fn).split(".")[0]
@@ -218,32 +236,15 @@ def evaluate(data,
         if save:
             timestamp = datetime.now().strftime("_%d%m%d%Y_%Hh%M")
             save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
-            save_uncropped = RECONSTRUCTIONPATH / str(
-                'uncropped_' + bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
+            save_uncropped = RECONSTRUCTIONPATH / str('uncropped_' + bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
             log.add_param('recon_fp', save)
             log.add_param('ucrop_recon_fp', save_uncropped)
 
-        if algo == "ridge":
-            estimate, converged, diagnostics = ridge(psf, lenseless, n_iter)
-            estimate = estimate['iterand'].reshape(lenseless.shape)
-        elif algo == "lasso":
-            estimate, converged, diagnostics = lasso(psf, lenseless, n_iter)
-            estimate = estimate['iterand'].reshape(lenseless.shape)
-        elif algo == "nnls":
-            estimate, converged, diagnostics = nnls(psf, lenseless, n_iter)
-            estimate = estimate['iterand'].reshape(lenseless.shape)
-        elif algo == "glasso":
-            estimate, converged, diagnostics = glasso(psf, lenseless, n_iter)
-            estimate = estimate['iterand'].reshape(lenseless.shape)
-        elif algo == "pls":
-            estimate, converged, diagnostics = pls(psf, lenseless, n_iter)
+        estimate, _, _ = optimize(algo, psf, lenseless, n_iter, lambda_, delta)
+        if algo == 'pls':
             estimate = estimate['primal_variable'].reshape(lenseless.shape)
-        elif algo == "pls_huber":
-            estimate, converged, diagnostics = pls_huber(psf, lenseless, n_iter)
-            estimate = estimate['iterand'].reshape(lenseless.shape)
         else:
-            estimate = None
-            raise AttributeError("Reconstruction algorithm not defined.")
+            estimate = estimate['iterand'].reshape(lenseless.shape)
 
         # save and plot un-cropped reconstruction?
         ax = plot_image(estimate, gamma=gamma)
@@ -252,12 +253,13 @@ def evaluate(data,
             plt.savefig(save_uncropped, format='png')
             print(f"\nFiles saved to : {save_uncropped}")
 
-        estimate = estimate[height_crops[0]:height_crops[1], width_crops[0]:width_crops[1]]
-        estimate = (estimate - estimate.min()) / (estimate.max() - estimate.min())
-
+        estimate = estimate[height_crops[bn][0]:height_crops[bn][1], width_crops[bn][0]:width_crops[bn][1]]
+        #estimate = (estimate - estimate.min()) / (estimate.max() - estimate.min())
+        print(f"est max: {estimate.max()}")
+        print(f"est min: {estimate.min()}")
         new_shape = estimate.shape[:2][::-1]
         lensed = cv2.resize(lensed, new_shape, interpolation=cv2.INTER_NEAREST)  # TODO: Check this!
-        lensed = (lensed - lensed.min()) / (lensed.max() - lensed.min())
+        #lensed = (lensed - lensed.min()) / (lensed.max() - lensed.min())
 
         print("\nGround truth shape:", lensed.shape)
         print("Reconstruction shape:", estimate.shape)
@@ -267,6 +269,8 @@ def evaluate(data,
         ax.set_title("Reconstructed")
         if save:
             plt.savefig(save, format='png')
+            npy_save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.npy')
+            np.save(npy_save, estimate)
             print(f"\nFiles saved to : {save}")
 
         # plot images
@@ -295,26 +299,6 @@ def evaluate(data,
         log.save_logs()
 
     return log
-
-""" Manually set height crops of reconstructions #TODO: redo
-height_crops = {'img1_rgb': (180, 420),
-                'img2_rgb': (220, 400),
-                'img3_rgb': (180, 400),
-                'img4_rgb': (180, 390),
-                'img5_rgb': (220, 400),
-                'img6_rgb': (180, 400),
-                'img7_rgb': (170, 410),
-                'img8_rgb': (180, 410)}
-
-# Manually set width crops of reconstructions #TODO: redo
-width_crops = {'img1_rgb': (290, 640),
-                'img2_rgb': (400, 550),
-                'img3_rgb': (280, 640),
-                'img4_rgb': (280, 640),
-                'img5_rgb': (400, 550),
-                'img6_rgb': (280, 640),
-                'img7_rgb': (370, 550),
-                'img8_rgb': (280, 640)}"""
 
 
 

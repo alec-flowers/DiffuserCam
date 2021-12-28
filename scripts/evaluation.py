@@ -86,8 +86,23 @@ def evaluate(data,
 
     print("\nLooping through files...")
 
-    height_crops = (180, 420)
-    width_crops = (290, 640)
+    # height crops determined from ADMM reconstructions
+    height_crops = {'img1_rgb': (179, 407),
+                    'img3_rgb': (179, 395),
+                    'img4_rgb': (181, 385),
+                    'img5_rgb': (183, 414),
+                    'img6_rgb': (179, 399),
+                    'img7_rgb': (183, 414),
+                    'img8_rgb': (181, 410)}
+
+    # width crops determined from ADMM reconstructions
+    width_crops = {'img1_rgb': (328, 669),
+                   'img3_rgb': (317, 681),
+                   'img4_rgb': (315, 683),
+                   'img5_rgb': (416, 585),
+                   'img6_rgb': (323, 679),
+                   'img7_rgb': (416, 585),
+                   'img8_rgb': (326, 671)}
 
     for fn in files:
         bn = os.path.basename(fn).split(".")[0]
@@ -150,7 +165,7 @@ def evaluate(data,
             plt.savefig(save_uncropped, format='png')
             print(f"\nFiles saved to : {save_uncropped}")
 
-        estimate = estimate[height_crops[0]:height_crops[1], width_crops[0]:width_crops[1]]
+        estimate = estimate[height_crops[bn][0]:height_crops[bn][1], width_crops[bn][0]:width_crops[bn][1]]
         #estimate = (estimate - estimate.min()) / (estimate.max() - estimate.min())
 
         log.add_img_param("est_min", estimate.min())
@@ -168,6 +183,8 @@ def evaluate(data,
         ax.set_title("Reconstructed")
         if save:
             plt.savefig(save, format='png')
+            npy_save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.npy')
+            np.save(npy_save, estimate)
             print(f"\nFiles saved to : {save}")
 
         # plot images
@@ -202,7 +219,7 @@ if __name__ == '__main__':
     data = 'our_images'
     n_files = 3          # None yields all :-)
     algo = 'ridge'
-    n_iter = 100
+    n_iter = 10
     gray = False
     downsample = 4
     disp = 50
@@ -214,6 +231,8 @@ if __name__ == '__main__':
     save = True
     plot = True
     single_psf = False
+    lambda_ = 0.1
+    delta = 1
 
     psf_fp = rf'{str(DATAPATH)}{os.sep}psf{os.sep}psf_rgb_ours.png'
     
@@ -221,6 +240,8 @@ if __name__ == '__main__':
              n_files,
              psf_fp,
              algo,
+             lambda_,
+             delta,
              n_iter,
              downsample,
              disp,
