@@ -210,8 +210,8 @@ if __name__ == '__main__':
     data = 'our_images'
     n_files = 3          # None yields all :-)
     algo = 'ridge'
-    n_iter = 100
-    gray = False
+    n_iter = 1
+    gray = True
     downsample = 4
     disp = 50
     flip = False
@@ -222,6 +222,8 @@ if __name__ == '__main__':
     save = True
     plot = True
     single_psf = False
+    lambda_ = 0.1
+    delta = 1
 
     psf_fp = rf'{str(DATAPATH)}{os.sep}psf{os.sep}psf_rgb_ours.png'
     
@@ -229,6 +231,8 @@ if __name__ == '__main__':
              n_files,
              psf_fp,
              algo,
+             lambda_,
+             delta,
              n_iter,
              downsample,
              disp,
