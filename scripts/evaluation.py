@@ -81,8 +81,23 @@ def evaluate(data,
 
     print("\nLooping through files...")
 
-    height_crops = (180, 420)
-    width_crops = (290, 640)
+    # height crops determined from ADMM reconstructions
+    height_crops = {'img1_rgb': (179, 407),
+                    'img3_rgb': (179, 395),
+                    'img4_rgb': (181, 385),
+                    'img5_rgb': (183, 414),
+                    'img6_rgb': (179, 399),
+                    'img7_rgb': (183, 414),
+                    'img8_rgb': (181, 410)}
+
+    # width crops determined from ADMM reconstructions
+    width_crops = {'img1_rgb': (328, 669),
+                   'img3_rgb': (317, 681),
+                   'img4_rgb': (315, 683),
+                   'img5_rgb': (416, 585),
+                   'img6_rgb': (323, 679),
+                   'img7_rgb': (416, 585),
+                   'img8_rgb': (326, 671)}
 
     for fn in files:
         bn = os.path.basename(fn).split(".")[0]
@@ -100,6 +115,7 @@ def evaluate(data,
         # load ground truth image
         lensed = load_image(lensed_fp, flip=flip, bayer=bayer, blue_gain=bg, red_gain=rg)
         lensed = np.array(lensed, dtype=dtype)
+        lensed /= 255
 
         # load and process raw measurement
         lenseless = load_image(lenseless_fp, flip=flip, bayer=bayer, blue_gain=bg, red_gain=rg)
@@ -157,12 +173,13 @@ def evaluate(data,
             plt.savefig(save_uncropped, format='png')
             print(f"\nFiles saved to : {save_uncropped}")
 
-        estimate = estimate[height_crops[0]:height_crops[1], width_crops[0]:width_crops[1]]
+        # Crop image with predetermined crops taken from ADMM reconstructions
+        estimate = estimate[height_crops[bn][0]:height_crops[bn][1], width_crops[bn][0]:width_crops[bn][1]]
         estimate = (estimate - estimate.min()) / (estimate.max() - estimate.min())
 
         new_shape = estimate.shape[:2][::-1]
         lensed = cv2.resize(lensed, new_shape, interpolation=cv2.INTER_NEAREST)  # TODO: Check this!
-        lensed = (lensed - lensed.min()) / (lensed.max() - lensed.min())
+
 
         print("\nGround truth shape:", lensed.shape)
         print("Reconstruction shape:", estimate.shape)
@@ -206,8 +223,8 @@ if __name__ == '__main__':
     data = 'our_images'
     n_files = 3          # None yields all :-)
     algo = 'lasso'
-    n_iter = 10
-    gray = False
+    n_iter = 1
+    gray = True
     downsample = 4
     disp = 50
     flip = False
