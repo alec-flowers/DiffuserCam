@@ -77,7 +77,7 @@ def evaluate(data,
 
     print_image_info(psf)
     if gray:
-        psf = rgb2gray(psf)
+        psf = rgb2gray(psf)[:, :, np.newaxis]
 
     print("\nLooping through files...")
 
@@ -158,7 +158,11 @@ def evaluate(data,
             print(f"\nFiles saved to : {save_uncropped}")
 
         estimate = estimate[height_crops[0]:height_crops[1], width_crops[0]:width_crops[1]]
-        lensed = cv2.resize(lensed, (estimate.shape[::-1]), interpolation=cv2.INTER_CUBIC)  # TODO: Check this!
+        estimate = (estimate - estimate.min()) / (estimate.max() - estimate.min())
+
+        new_shape = estimate.shape[:2][::-1]
+        lensed = cv2.resize(lensed, new_shape, interpolation=cv2.INTER_NEAREST)  # TODO: Check this!
+        lensed = (lensed - lensed.min()) / (lensed.max() - lensed.min())
 
         print("\nGround truth shape:", lensed.shape)
         print("Reconstruction shape:", estimate.shape)
@@ -203,7 +207,7 @@ if __name__ == '__main__':
     n_files = 3          # None yields all :-)
     algo = 'lasso'
     n_iter = 10
-    gray = True
+    gray = False
     downsample = 4
     disp = 50
     flip = False

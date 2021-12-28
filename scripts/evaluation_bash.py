@@ -130,6 +130,12 @@ def evaluate(data,
              bg_pix=(5, 25),
              ):
     assert data is not None
+    log = LogMetrics()
+    log.add_param('data', data)
+    log.add_param('psf_fp', psf_fp)
+    log.add_param('algo', algo)
+    log.add_param('n_iter', n_iter)
+    log.add_param('gray', n_iter)
 
     # determining data paths
     diffuser_dir = os.path.join(str(DATAPATH), data, "diffuser")
@@ -165,29 +171,25 @@ def evaluate(data,
 
     print_image_info(psf)
     if gray:
-        psf = rgb2gray(psf)
+        psf = rgb2gray(psf)[:, :, np.newaxis]
 
     print("\nLooping through files...")
-    mse_scores = []
-    psnr_scores = []
-    ssim_scores = []
-    lpips_scores = []
 
     height_crops = (180, 420)
     width_crops = (290, 640)
 
     for fn in files:
-
         bn = os.path.basename(fn).split(".")[0]
         print(f"\n-----------------------------\n Evaluating {bn}...\n-----------------------------")
 
         # prepare file paths
         lenseless_fp = os.path.join(diffuser_dir, fn)
-
+        log.add_param('lenseless_fp', lenseless_fp)
         if data == 'our_images':
             lensed_fp = os.path.join(lensed_dir, "_".join([fn.split("_")[0], 'original.png']))
         else:
             lensed_fp = os.path.join(lensed_dir, fn)
+        log.add_param('lensed_fp', lensed_fp)
 
         # load ground truth image
         lensed = load_image(lensed_fp, flip=flip, bayer=bayer, blue_gain=bg, red_gain=rg)
@@ -216,7 +218,10 @@ def evaluate(data,
         if save:
             timestamp = datetime.now().strftime("_%d%m%d%Y_%Hh%M")
             save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
-            save_uncropped = RECONSTRUCTIONPATH / str('uncropped_' + bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
+            save_uncropped = RECONSTRUCTIONPATH / str(
+                'uncropped_' + bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
+            log.add_param('recon_fp', save)
+            log.add_param('ucrop_recon_fp', save_uncropped)
 
         if algo == "ridge":
             estimate, converged, diagnostics = ridge(psf, lenseless, n_iter)
@@ -248,7 +253,11 @@ def evaluate(data,
             print(f"\nFiles saved to : {save_uncropped}")
 
         estimate = estimate[height_crops[0]:height_crops[1], width_crops[0]:width_crops[1]]
-        lensed = cv2.resize(lensed, (estimate.shape[::-1]), interpolation=cv2.INTER_CUBIC)  # TODO: Check this!
+        estimate = (estimate - estimate.min()) / (estimate.max() - estimate.min())
+
+        new_shape = estimate.shape[:2][::-1]
+        lensed = cv2.resize(lensed, new_shape, interpolation=cv2.INTER_NEAREST)  # TODO: Check this!
+        lensed = (lensed - lensed.min()) / (lensed.max() - lensed.min())
 
         print("\nGround truth shape:", lensed.shape)
         print("Reconstruction shape:", estimate.shape)
@@ -275,26 +284,39 @@ def evaluate(data,
             ax.set_title("Ground truth")
             plt.show()
 
-        mse_scores.append(mse(lensed, estimate))
-        psnr_scores.append(psnr(lensed, estimate))
-        lpips_scores.append(lpips(lensed, estimate, gray=gray))  # TODO: Check if grayscale implementation is correct!
+        log.calculate_metrics(lensed, estimate)
+        log.save_metrics(bn)
+        log.print_metrics()
 
-        # ssim function changed in order to account for grayscale input
-        if gray:
-            ssim_scores.append(ssim(lensed, estimate, channel_axis=None))
-        else:
-            ssim_scores.append(ssim(lensed, estimate))
+    log.save_metric_list()
+    log.print_average_metrics()
 
-        print(f"\nMES: {mse_scores[-1]}")
-        print(f"\nPSNR: {psnr_scores[-1]}")
-        print(f"\nSSIM: {ssim_scores[-1]}")
-        print(f"\nLPIPS: {lpips_scores[-1]}")
+    if save:
+        log.save_logs()
 
-    print("\n-----------------------------\n Average scores \n-----------------------------")
-    print("\nMSE (avg)", np.mean(mse_scores))
-    print("PSNR (avg)", np.mean(psnr_scores))
-    print("SSIM (avg)", np.mean(ssim_scores))
-    print("LPIPS (avg)", np.mean(lpips_scores))
+    return log
+
+""" Manually set height crops of reconstructions #TODO: redo
+height_crops = {'img1_rgb': (180, 420),
+                'img2_rgb': (220, 400),
+                'img3_rgb': (180, 400),
+                'img4_rgb': (180, 390),
+                'img5_rgb': (220, 400),
+                'img6_rgb': (180, 400),
+                'img7_rgb': (170, 410),
+                'img8_rgb': (180, 410)}
+
+# Manually set width crops of reconstructions #TODO: redo
+width_crops = {'img1_rgb': (290, 640),
+                'img2_rgb': (400, 550),
+                'img3_rgb': (280, 640),
+                'img4_rgb': (280, 640),
+                'img5_rgb': (400, 550),
+                'img6_rgb': (280, 640),
+                'img7_rgb': (370, 550),
+                'img8_rgb': (280, 640)}"""
+
+
 
 
 if __name__ == '__main__':
