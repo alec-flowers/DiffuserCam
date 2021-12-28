@@ -105,8 +105,8 @@ def reconstruction(
 
 if __name__ == "__main__":
 
-    psf_fp = str(DATAPATH) + '/psf/diffcam_rgb.png'
-    data_fp = str(DATAPATH) + '/raw_data/thumbs_up_rgb.png'
+    psf_fp = str(DATAPATH) + '/psf/psf_rgb_ours.png'
+    data_fp = str(DATAPATH) + '/our_images/diffuser/img8_rgb.png'
     algo = 'lasso'
     n_iter = 100
     gray = False

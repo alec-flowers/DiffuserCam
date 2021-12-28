@@ -29,10 +29,10 @@ def multiple_runs(parameters):
 if __name__ == "__main__":
     parameters = {
         "data" : ['our_images'],
-        "n_files" : [2], # None yields all :-)
-        "algo" : ['ridge', 'lasso', 'pls_huber'],
-        "n_iter" : [10],
-        "gray" : [True],
+        "n_files" : [1], # None yields all :-)
+        "algo" : ['lasso'],
+        "n_iter" : [100],
+        "gray" : [False],
         "downsample" : [4],
         "disp" : [50],
         "flip" : [False],

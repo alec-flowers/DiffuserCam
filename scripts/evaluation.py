@@ -201,9 +201,9 @@ def evaluate(data,
 if __name__ == '__main__':
     data = 'our_images'
     n_files = 3          # None yields all :-)
-    algo = 'lasso'
-    n_iter = 10
-    gray = True
+    algo = 'ridge'
+    n_iter = 100
+    gray = False
     downsample = 4
     disp = 50
     flip = False

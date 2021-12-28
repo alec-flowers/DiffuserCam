@@ -20,6 +20,7 @@ class DCT2(LinearOperator):
     def adjoint(self, y: np.ndarray) -> np.ndarray:
         return idctn(y.reshape(self.origshape), type = 2 , norm = 'ortho').flatten()
 
+
 class OptiConvolve2D(LinearOperator):
     def __init__(self, psf:np.ndarray):
         super(OptiConvolve2D, self).__init__(shape=(psf.size, psf.size), dtype=psf.dtype)
@@ -36,8 +37,7 @@ class OptiConvolve2D(LinearOperator):
         self.fft_psf = fft.rfftn(psf, self.fshape2d, axes=(0,1))
         psf_conj = psf[::-1,::-1].conj()
         self.fft_psf_conj = fft.rfftn(psf_conj, self.fshape2d, axes=(0,1))
-        
-        
+
     def __call__(self, x: np.ndarray) -> np.ndarray:
         x = np.reshape(x, self.origshape)
         x = fft.rfftn(x, self.fshape2d, axes=(0,1))

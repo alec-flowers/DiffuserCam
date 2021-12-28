@@ -6,14 +6,14 @@ from pycsou.func.penalty import SquaredL2Norm, L2Norm, L1Norm, NonNegativeOrthan
 from pycsou.opt.proxalgs import APGD, PDS
 from pycsou.linop.diff import Gradient
 
-from scripts.functionals import DCT2, HuberNorm
+from scripts.functionals import DCT2, HuberNorm, OptiConvolve2D
 from scipy.fftpack import dctn, idctn
 
 
 def lasso(psf, data, n_iter):
     start_time = time.time()
 
-    Hop = Convolve2D(size=data.size, filter=psf, shape=data.shape, method='fft')
+    Hop = OptiConvolve2D(psf)
     Hop.compute_lipschitz_cst(tol=5e-1)
 
     l22_loss = (1 / 2) * SquaredL2Loss(dim=Hop.shape[0], data=data.flatten())
