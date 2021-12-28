@@ -48,6 +48,11 @@ def load_image(
         black_level = np.array(raw.black_level_per_channel[:3]).astype(np.float32)
     else:
         img = cv2.imread(fp, cv2.IMREAD_UNCHANGED)
+        try: # Windows OS issues with cv2.imread
+            if img == None:
+                img = cv2.imdecode(np.fromfile(fp, dtype=np.uint8), -1)  # compatibility with windows and bash execution
+        except ValueError:
+            pass # not a problem when running from bash command line
 
     if bayer:
         assert len(img.shape) == 2, img.shape
