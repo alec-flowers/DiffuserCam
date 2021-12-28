@@ -139,3 +139,5 @@ dmypy.json
 /diffcam/test.ipynb
 /data/MirFlickr
 .vs
+/data/logs/*
+!/data/logs/.gitkeep

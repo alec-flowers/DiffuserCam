@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 from diffcam.plot import plot_image
 from diffcam.io import load_psf, load_image
-from diffcam.metric import mse, psnr, ssim, lpips
+from diffcam.metric import mse, psnr, ssim, lpips, LogMetrics
 from diffcam.util import DATAPATH, RECONSTRUCTIONPATH, print_image_info, resize, rgb2gray
 
 from scripts.optimization import lasso, ridge, nnls, glasso, pls, pls_huber
@@ -36,6 +36,12 @@ def evaluate(data,
              bg_pix=(5, 25),
              ):
     assert data is not None
+    log = LogMetrics()
+    log.add_param('data', data)
+    log.add_param('psf_fp', psf_fp)
+    log.add_param('algo', algo)
+    log.add_param('n_iter', n_iter)
+    log.add_param('gray', n_iter)
 
     # determining data paths
     diffuser_dir = os.path.join(str(DATAPATH), data, "diffuser")
@@ -74,26 +80,22 @@ def evaluate(data,
         psf = rgb2gray(psf)
 
     print("\nLooping through files...")
-    mse_scores = []
-    psnr_scores = []
-    ssim_scores = []
-    lpips_scores = []
 
     height_crops = (180, 420)
     width_crops = (290, 640)
 
     for fn in files:
-
         bn = os.path.basename(fn).split(".")[0]
         print(f"\n-----------------------------\n Evaluating {bn}...\n-----------------------------")
 
         # prepare file paths
         lenseless_fp = os.path.join(diffuser_dir, fn)
-
+        log.add_param('lenseless_fp', lenseless_fp)
         if data == 'our_images':
             lensed_fp = os.path.join(lensed_dir, "_".join([fn.split("_")[0], 'original.png']))
         else:
             lensed_fp = os.path.join(lensed_dir, fn)
+        log.add_param('lensed_fp', lensed_fp)
 
         # load ground truth image
         lensed = load_image(lensed_fp, flip=flip, bayer=bayer, blue_gain=bg, red_gain=rg)
@@ -123,6 +125,8 @@ def evaluate(data,
             timestamp = datetime.now().strftime("_%d%m%d%Y_%Hh%M")
             save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
             save_uncropped = RECONSTRUCTIONPATH / str('uncropped_' + bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
+            log.add_param('recon_fp', save)
+            log.add_param('ucrop_recon_fp', save_uncropped)
 
         if algo == "ridge":
             estimate, converged, diagnostics = ridge(psf, lenseless, n_iter)
@@ -181,33 +185,24 @@ def evaluate(data,
             ax.set_title("Ground truth")
             plt.show()
 
-        mse_scores.append(mse(lensed, estimate))
-        psnr_scores.append(psnr(lensed, estimate))
-        lpips_scores.append(lpips(lensed, estimate, gray=gray))  # TODO: Check if grayscale implementation is correct!
+        log.calculate_metrics(lensed, estimate)
+        log.save_metrics(bn)
+        log.print_metrics()
 
-        # ssim function changed in order to account for grayscale input
-        if gray:
-            ssim_scores.append(ssim(lensed, estimate, channel_axis=None))
-        else:
-            ssim_scores.append(ssim(lensed, estimate))
+    log.save_metric_list()
+    log.print_average_metrics()
 
-        print(f"\nMES: {mse_scores[-1]}")
-        print(f"\nPSNR: {psnr_scores[-1]}")
-        print(f"\nSSIM: {ssim_scores[-1]}")
-        print(f"\nLPIPS: {lpips_scores[-1]}")
+    if save:
+        log.save_logs()
 
-    print("\n-----------------------------\n Average scores \n-----------------------------")
-    print("\nMSE (avg)", np.mean(mse_scores))
-    print("PSNR (avg)", np.mean(psnr_scores))
-    print("SSIM (avg)", np.mean(ssim_scores))
-    print("LPIPS (avg)", np.mean(lpips_scores))
+    return log
 
 
 if __name__ == '__main__':
     data = 'our_images'
-    n_files = None          # None yields all :-)
-    algo = 'ridge'
-    n_iter = 1
+    n_files = 3          # None yields all :-)
+    algo = 'lasso'
+    n_iter = 10
     gray = True
     downsample = 4
     disp = 50
@@ -220,8 +215,8 @@ if __name__ == '__main__':
     plot = True
     single_psf = False
 
-    psf_fp = rf'{str(DATAPATH)}{os.sep}psf{os.sep}diffcam_rgb.png'
-
+    psf_fp = rf'{str(DATAPATH)}{os.sep}psf{os.sep}psf_rgb_ours.png'
+    
     evaluate(data,
              n_files,
              psf_fp,
