@@ -14,6 +14,7 @@ def lasso(psf, data, n_iter):
     start_time = time.time()
 
     Hop = OptiConvolve2D(psf)
+
     Hop.compute_lipschitz_cst(tol=5e-1)
 
     l22_loss = (1 / 2) * SquaredL2Loss(dim=Hop.shape[0], data=data.flatten())
@@ -35,7 +36,7 @@ def lasso(psf, data, n_iter):
 
 def ridge(psf, data, n_iter):
     start_time = time.time()
-    Hop = Convolve2D(size=data.size, filter=psf, shape=data.shape, method='fft')
+    Hop = OptiConvolve2D(psf)
     Hop.compute_lipschitz_cst(tol=5e-1)
     a = Hop.shape
     lambda_ = 0.1
@@ -56,7 +57,7 @@ def ridge(psf, data, n_iter):
 
 def nnls(psf, data, n_iter):
     start_time = time.time()
-    Hop = Convolve2D(size=data.size, filter=psf, shape=data.shape, method='fft')  # Regularisation operator
+    Hop = OptiConvolve2D(psf)  # Regularisation operator
     Hop.compute_lipschitz_cst(tol=5e-1)
 
     l22_loss = (1 / 2) * SquaredL2Loss(dim=Hop.shape[0], data=data.flatten())
@@ -84,7 +85,7 @@ def glasso(psf, data, n_iter):
     dct2 = DCT2(data.shape)
     idct2 = dct2.get_adjointOp()
 
-    Hop = Convolve2D(size=data.size, filter=psf, shape=data.shape, method='fft')
+    Hop = OptiConvolve2D(psf)
     Hop.compute_lipschitz_cst(tol=5e-1)
 
     l22_loss = (1 / 2) * SquaredL2Loss(dim=Hop.shape[0], data=data.flatten())
@@ -112,7 +113,7 @@ def pls(psf, data, n_iter):
     TV + Non-negativity prior
     '''
     start_time = time.time()
-    Hop = Convolve2D(size=data.size, filter=psf, shape=data.shape, method='fft') 
+    Hop = OptiConvolve2D(psf)
     Hop.compute_lipschitz_cst(tol=5e-1)
     D = Gradient(shape = data.shape)
     D.compute_lipschitz_cst(tol=5e-1)
@@ -140,7 +141,7 @@ def pls_huber(psf, data, n_iter):
     TV + Non-negativity prior + differentiable HuberNorm
     '''
     start_time = time.time()
-    Hop = Convolve2D(size=data.size, filter=psf, shape=data.shape, method='fft')
+    Hop = OptiConvolve2D(psf)
     Hop.compute_lipschitz_cst(tol=5e-1)
     D = Gradient(shape = data.shape)
     D.compute_lipschitz_cst(tol=5e-1)

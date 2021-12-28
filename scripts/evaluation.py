@@ -77,7 +77,7 @@ def evaluate(data,
 
     print_image_info(psf)
     if gray:
-        psf = rgb2gray(psf)
+        psf = rgb2gray(psf)[:, :, np.newaxis]
 
     print("\nLooping through files...")
 
