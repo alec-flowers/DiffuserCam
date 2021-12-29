@@ -5,7 +5,6 @@ import glob
 import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
-from time import process_time
 
 from diffcam.plot import plot_image
 from diffcam.io import load_psf, load_image
@@ -111,8 +110,6 @@ def evaluate(data,
     if gray:
         psf = rgb2gray(psf)[:, :, np.newaxis]
     
-    
-    
     #===================== PER IMAGE FILE COMPUTATIONS ======================
     
     print("\nLooping through files...")
@@ -136,11 +133,13 @@ def evaluate(data,
         # ==================== INVERSE ESTIMATE ===============================
         
         estimates, elapsed_times = inverse_estimate(algo, psf, lenseless, n_iters, lambda_, delta, dtype)
+        print("Total computation time:", elapsed_times[-1],"s")
+        # =============== POSTPROCESS + PLOTTING/SAVING =======================
         
         # Loop, in case we have more than one n_iter (to checkpoint optimization through various steps)
         total_iter = 0
         for n, estimate, elapsed_time in zip(n_iters, estimates, elapsed_times):
-            # =============== POSTPROCESS + PLOTTING/SAVING =======================
+            
             total_iter += n
             ax, uncropped_img = plot_image(estimate, gamma=gamma, return_image=True)
             ax.set_title("Uncropped reconstruction")
@@ -212,7 +211,7 @@ def inverse_estimate(algo, psf, lenseless, n_iters, lambda_, delta, dtype):
     elapsed_times = []
     
     if algo == "admm":
-        start_time = process_time()
+        start_time = time.process_time()
         recon = ADMM(psf.squeeze())
         recon.set_data(lenseless.squeeze())
         print(f"setup time : {time.process_time() - start_time} s")
@@ -222,7 +221,7 @@ def inverse_estimate(algo, psf, lenseless, n_iters, lambda_, delta, dtype):
             for _ in range(n):
                 recon._update()
             elapsed_time = time.process_time() - start_time
-            print(f"proc time : {time.process_time() - proc_start_time} s")
+            print(f"proc time... : {time.process_time() - proc_start_time} s")
             elapsed_times.append(elapsed_time)
             estimates.append(recon._form_image().squeeze())
     else:
@@ -264,8 +263,8 @@ def show_results(psf, lensed, lenseless, gamma):
 if __name__ == '__main__':
     data = 'our_images'
     n_files = 1          # None yields all :-)
-    algo = 'glasso'
-    n_iter = [10, 10, 10, 10]
+    algo = 'admm'
+    n_iter = [3, 1, 1]
     gray = False
     downsample = 4
     disp = 50
@@ -275,7 +274,7 @@ if __name__ == '__main__':
     rg = None
     gamma = None
     save = True
-    plot = True
+    plot = False
     single_psf = False
     lambda_ = 0.0001
     delta = 1

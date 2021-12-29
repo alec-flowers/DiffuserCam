@@ -17,14 +17,14 @@ def optimize(method, psf, data, n_iters, dtype, lambda_=0.1, delta=1):
     runner, post_process = get_runner(method, psf, data, sum(n_iters), lambda_, delta)
     print(f"setup time : {time.process_time() - start_time} s")
     
+    proc_start_time = time.process_time()
     for n in n_iters:
-        proc_start_time = time.process_time()
         for _ in range(n):
             runner.iterand = runner.update_iterand()
             runner.iter += 1
             
         elapsed_time = time.process_time() - start_time
-        print(f"proc time : {time.process_time() - proc_start_time} s")
+        print(f"proc time... : {time.process_time() - proc_start_time} s")
         
         elapsed_times.append(elapsed_time)
         estimates.append(runner.postprocess_iterand())
@@ -85,7 +85,7 @@ def get_runner(method, psf, data, n_iter, lambda_, delta):
     else:
         raise AttributeError("Reconstruction algorithm not defined.")
     
-    #====================== OPTIMIZATION =======================
+    #====================== OPTIMIZATION METHOD =======================
     
     if method in ["pls"]:
         return PDS(dim=Hop.shape[0], 
