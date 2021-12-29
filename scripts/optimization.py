@@ -9,18 +9,37 @@ from pycsou.linop.diff import Gradient
 from scripts.functionals import DCT2, HuberNorm, OptiConvolve2D
 from scipy.fftpack import dctn, idctn
 
-def optimize(method, psf, data, n_iter, lambda_=0.1, delta=1):
-    start_time = time.time()
-    runner, post_process = get_runner(method, psf, data, n_iter, lambda_, delta)
-    print(f"setup time : {time.time() - start_time} s")
+def optimize(method, psf, data, n_iters, dtype, lambda_=0.1, delta=1):
+    estimates = []
+    elapsed_times = []
     
-    start_time = time.time()
-    estimate, converged, diagnostics = runner.iterate()
-    print(f"proc time : {time.time() - start_time} s")
-
-    post_process(estimate)
+    start_time = time.process_time()
+    runner, post_process = get_runner(method, psf, data, sum(n_iters), lambda_, delta)
+    print(f"setup time : {time.process_time() - start_time} s")
     
-    return estimate, converged, diagnostics
+    for n in n_iters:
+        proc_start_time = time.process_time()
+        for _ in range(n):
+            runner.iterand = runner.update_iterand()
+            runner.iter += 1
+            
+        elapsed_time = time.process_time() - start_time
+        print(f"proc time : {time.process_time() - proc_start_time} s")
+        
+        elapsed_times.append(elapsed_time)
+        estimates.append(runner.postprocess_iterand())
+    
+    # Postprocess
+    for i in range(len(estimates)):
+        post_process(estimates[i])
+        if method == 'pls':
+            estimates[i] = estimates[i]['primal_variable']
+        else:
+            estimates[i] = estimates[i]['iterand']
+        estimates[i][estimates[i] < 0] = 0.0
+        estimates[i] = estimates[i].reshape(data.shape).astype(dtype).squeeze()
+    
+    return estimates, elapsed_times
 
 def get_runner(method, psf, data, n_iter, lambda_, delta):
     Hop = OptiConvolve2D(psf)
