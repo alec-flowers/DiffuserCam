@@ -30,11 +30,28 @@ def multiple_runs(parameters):
 if __name__ == "__main__":
     parameters = {
         "data": ['our_images'],
-        "n_files": [3],  # None yields all :-)
-        "algo": ['lasso', 'lasso', 'pls_huber', 'pls_huber', 'pls', 'pls'],
-        "lambda_": [.01, 1]*3,
-        "delta": [1, 10]*3,
-        "n_iter": [5],
+        "n_files": [None],  # None yields all :-)
+        "algo": ["pls_huber", "pls_huber", "pls_huber", "pls_huber", "pls_huber", "pls_huber","pls_huber", "pls_huber", "pls_huber",
+                 "pls_huber", "pls_huber", "pls_huber", "pls_huber", "pls_huber", "pls_huber","pls_huber", "pls_huber", "pls_huber",
+                 "pls_huber", "pls_huber", "pls_huber", "pls_huber", "pls_huber", "pls_huber","pls_huber", "pls_huber", "pls_huber",
+                 "pls_huber", "pls_huber", "pls_huber", "pls_huber", "pls_huber", "pls_huber","pls_huber", "pls_huber", "pls_huber",
+                 "ridge", "ridge", "ridge", "ridge", "ridge", "ridge", "ridge", "ridge", "ridge",
+                 "lasso", "lasso", "lasso", "lasso", "lasso", "lasso", "lasso", "lasso", "lasso",
+                 "glasso", "glasso", "glasso","glasso", "glasso", "glasso","glasso", "glasso", "glasso",
+                 "nnls", "nnls", "nnls", "nnls", "nnls", "nnls", "nnls", "nnls", "nnls",
+                 "pls", "pls", "pls", "pls", "pls", "pls", "pls", "pls", "pls"
+                 ],
+        "lambda_": [.0000001, .000001, .00001, .0001, .001, .01, .1, 1, 10]*9,
+        "delta": [.1, 1, 10, 100]*9,
+        "n_iter": [5, 200, 200, 200, 200, 200, 200, 200, 200,
+                   200, 200, 200, 200, 200, 200, 200, 200, 200,
+                   200, 200, 200, 200, 200, 200, 200, 200, 200,
+                   200, 200, 200, 200, 200, 200, 200, 200, 200,
+                   200, 200, 200, 200, 200, 200, 200, 200, 200,
+                   200, 200, 200, 200, 200, 200, 200, 200, 200,
+                   200, 200, 200, 200, 200, 200, 200, 200, 200,
+                   200, 200, 200, 200, 200, 200, 200, 200, 200,
+                   500, 500, 500, 500, 500, 500, 500, 500, 500],
         "gray": [False],
         "downsample": [4],
         "disp": [50],
@@ -44,7 +61,7 @@ if __name__ == "__main__":
         "rg": [None],
         "gamma": [None],
         "save": [True],
-        "plot": [True],
+        "plot": [False],
         "single_psf": [False],
         "psf_fp": [rf'{str(DATAPATH)}{os.sep}psf{os.sep}psf_rgb_ours.png'],
     }

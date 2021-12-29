@@ -14,6 +14,7 @@ from diffcam.util import DATAPATH, RECONSTRUCTIONPATH, print_image_info, resize,
 
 from scripts.optimization import optimize
 
+
 def evaluate(data,
              n_files,
              psf_fp,
@@ -113,12 +114,12 @@ def evaluate(data,
 
         #===================== IMAGES LOADING AND PREPROCESS ======================
         lenseless_fp = os.path.join(diffuser_dir, fn)
-        log.add_param('lenseless_fp', lenseless_fp)
+        log.add_img_param('lenseless_fp', lenseless_fp)
         if data == 'our_images':
             lensed_fp = os.path.join(lensed_dir, "_".join([fn.split("_")[0], 'original.png']))
         else:
             lensed_fp = os.path.join(lensed_dir, fn)
-        log.add_param('lensed_fp', lensed_fp)
+        log.add_img_param('lensed_fp', lensed_fp)
 
         # load ground truth image
         lensed = load_image(lensed_fp, flip=flip, bayer=bayer, blue_gain=bg, red_gain=rg)
@@ -149,8 +150,8 @@ def evaluate(data,
             timestamp = datetime.now().strftime("_%d%m%d%Y_%Hh%M")
             save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
             save_uncropped = RECONSTRUCTIONPATH / str('uncropped_' + bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
-            log.add_param('recon_fp', save)
-            log.add_param('ucrop_recon_fp', save_uncropped)
+            log.add_img_param('recon_fp', save)
+            log.add_img_param('ucrop_recon_fp', save_uncropped)
 
         # =============================================================================
         # ==================== INVERSE ESTIMATE =======================================
@@ -177,7 +178,7 @@ def evaluate(data,
         estimate = estimate[height_crops[bn][0]:height_crops[bn][1], width_crops[bn][0]:width_crops[bn][1]]
 
         log.add_img_param("est_min", estimate.min())
-        log.add_img_param("est_min", estimate.max())
+        log.add_img_param("est_max", estimate.max())
 
         new_shape = estimate.shape[:2][::-1]
         lensed = cv2.resize(lensed, new_shape, interpolation=cv2.INTER_NEAREST)  # TODO: Check this!
