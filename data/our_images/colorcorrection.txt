@@ -1,4 +1,5 @@
 Color-correction values:
+original bash command (needs modificiation to our setting): python scripts/analyze_image.py --bayer --fp psf.dng --bg <BLUE_GAIN> --rg <RED_GAIN> --save psf_rgb.png
 
 img1: bg = 1.55, rg = 1.45
 
