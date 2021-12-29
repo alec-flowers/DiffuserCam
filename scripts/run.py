@@ -31,12 +31,10 @@ if __name__ == "__main__":
     parameters = {
         "data": ['our_images'],
         "n_files": [1],  # None yields all :-)
-        "algo": ["pls", "pls", "pls",
-                 "pls_huber","pls_huber", "pls_huber",
-                 "lasso", "lasso", "lasso"],
-        "lambda_": [.1, .2, .3]*3,
-        "delta": [1],
-        "n_iter": [1000],
+        "algo": ["pls"],
+        "lambda_": [.25, .2, .3]*1,
+        "delta": [222],
+        "n_iter": [[10,10,10]],
         "gray": [False],
         "downsample": [4],
         "disp": [50],
@@ -46,7 +44,7 @@ if __name__ == "__main__":
         "rg": [None],
         "gamma": [None],
         "save": [True],
-        "plot": [False],
+        "plot": [True],
         "single_psf": [False],
         "psf_fp": [rf'{str(DATAPATH)}{os.sep}psf{os.sep}psf_rgb_ours.png'],
     }

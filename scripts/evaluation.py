@@ -69,7 +69,6 @@ def evaluate(data,
     log.add_param('data', data)
     log.add_param('psf_fp', psf_fp)
     log.add_param('algo', algo)
-    log.add_param('n_iter', n_iters)
     log.add_param('gray', gray)
     log.add_param('lambda', lambda_)
     log.add_param('delta', delta)
@@ -142,6 +141,7 @@ def evaluate(data,
         for n, estimate, elapsed_time in zip(n_iters, estimates, elapsed_times):
             # =============== POSTPROCESS + PLOTTING/SAVING =======================
             total_iter += n
+            log.add_param('n_iter', total_iter)
             ax, uncropped_img = plot_image(estimate, gamma=gamma, return_image=True)
             ax.set_title("Uncropped reconstruction")
 
@@ -168,11 +168,11 @@ def evaluate(data,
             log.save_metrics(bn)
             log.print_metrics()
 
-    log.save_metric_list()
-    log.print_average_metrics()
+            log.save_metric_list()
+            log.print_average_metrics()
 
-    if save:
-        log.save_logs()
+            if save:
+                log.save_logs()
 
     return log
 
