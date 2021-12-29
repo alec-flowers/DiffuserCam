@@ -10,7 +10,7 @@ except:
     from diffcam.autocorr import autocorr2d
 
 
-def plot_image(img, ax=None, gamma=None, normalize=True):
+def plot_image(img, ax=None, gamma=None, normalize=True, return_image=False):
     """ """
 
     if ax is None:
@@ -36,8 +36,11 @@ def plot_image(img, ax=None, gamma=None, normalize=True):
         ax.imshow(img_norm, cmap="gray")
     else:
         raise ValueError(f"Unexpected data shape : {img_norm.shape}")
-
-    return ax
+    
+    if return_image:
+        return ax, img_norm
+    else:
+        return ax
 
 
 def pixel_histogram(img, nbits=None, ax=None, log_scale=True):

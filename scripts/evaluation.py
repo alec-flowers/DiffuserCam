@@ -169,10 +169,11 @@ def evaluate(data,
         # ========================== POSTPROCESS PLOTTING/SAVING ===============================
 
         # save and plot un-cropped reconstruction?
-        ax = plot_image(estimate, gamma=gamma)
+        ax, uncropped_img = plot_image(estimate, gamma=gamma, return_image=True)
         ax.set_title("Uncropped reconstruction")
         if save:
-            plt.savefig(save_uncropped, format='png')
+            # plt.savefig(save_uncropped, format='png')
+            cv2.imwrite(str(save_uncropped), uncropped_img * 255) # Plotting the image only
             print(f"\nFiles saved to : {save_uncropped}")
 
         estimate = estimate[height_crops[bn][0]:height_crops[bn][1], width_crops[bn][0]:width_crops[bn][1]]
@@ -187,12 +188,13 @@ def evaluate(data,
         print("Reconstruction shape:", estimate.shape)
 
         # save and plot reconstruction?
-        ax = plot_image(estimate, gamma=gamma)
+        ax, cropped_img = plot_image(estimate, gamma=gamma, return_image=True)
         ax.set_title("Reconstructed")
 
         #TODO when saving images need to not save axes and title, want just the image itself
         if save:
-            plt.savefig(save, format='png')
+            # plt.savefig(save, format='png')
+            cv2.imwrite(str(save), cropped_img * 255)
             npy_save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.npy')
             np.save(npy_save, estimate)
             print(f"\nFiles saved to : {save}")
