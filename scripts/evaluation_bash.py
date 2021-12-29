@@ -2,7 +2,7 @@
 
 ```bash
 
-python scripts/evaluation_bash.py --data our_images --psf_fp data/psf/diffcam_rgb.png --algo ridge --n_iter 500 --gray --plot --save
+python scripts/evaluation_bash.py --psf_fp data/psf/diffcam_rgb.png --algo ridge --n_iter 500 --gray --plot --save
 
 ```
 """
@@ -39,14 +39,14 @@ import numpy as np
 
 @click.option(
     "--lambda_",
-    type=str,
+    type=float,
     default=0.1,
     help="Lambda value for regularization.",
 )
 
 @click.option(
     "--delta",
-    type=str,
+    type=float,
     default=1,
     help="Delta for huber metric.",
 )
