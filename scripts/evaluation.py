@@ -1,6 +1,3 @@
-"""
-
-"""
 import os
 import cv2
 import time
@@ -15,7 +12,7 @@ from diffcam.io import load_psf, load_image
 from diffcam.metric import mse, psnr, ssim, lpips, LogMetrics
 from diffcam.util import DATAPATH, RECONSTRUCTIONPATH, print_image_info, resize, rgb2gray
 
-from scripts.optimization import lasso, ridge, nnls, glasso, pls, pls_huber, optimize
+from scripts.optimization import optimize
 
 def evaluate(data,
              n_files,
@@ -48,6 +45,8 @@ def evaluate(data,
     log.add_param('lambda', lambda_)
     log.add_param('delta', delta)
 
+    #===================== FILENAME MANAGEMENT ===================
+    
     # determining data paths
     diffuser_dir = os.path.join(str(DATAPATH), data, "diffuser")
     lensed_dir = os.path.join(str(DATAPATH), data, "lensed")
@@ -65,27 +64,28 @@ def evaluate(data,
     files = [os.path.basename(fn) for fn in files]
     print("\nNumber of files : ", len(files))
 
-    # Load PSF
+    #===================== LOADING PSF ======================
     assert os.path.isfile(psf_fp)
-    psf, background = load_psf(
-        psf_fp,
-        downsample=downsample,
-        return_float=True,
-        bg_pix=bg_pix,
-        return_bg=True,
-        flip=flip,
-        bayer=bayer,
-        blue_gain=bg,
-        red_gain=rg,
-        dtype=dtype,
-        single_psf=single_psf)
+    psf, background = load_psf(psf_fp,
+                               downsample=downsample,
+                               return_float=True,
+                               bg_pix=bg_pix,
+                               return_bg=True,
+                               flip=flip,
+                               bayer=bayer,
+                               blue_gain=bg,
+                               red_gain=rg,
+                               dtype=dtype,
+                               single_psf=single_psf)
 
     print_image_info(psf)
     if gray:
         psf = rgb2gray(psf)[:, :, np.newaxis]
 
-    print("\nLooping through files...")
+    
 
+    
+    #===================== CUSTOM CROP SIZE  ======================
     # height crops determined from ADMM reconstructions
     height_crops = {'img1_rgb': (179, 407),
                     'img3_rgb': (179, 395),
@@ -103,12 +103,15 @@ def evaluate(data,
                    'img6_rgb': (323, 679),
                    'img7_rgb': (416, 585),
                    'img8_rgb': (326, 671)}
-
+    
+    #===================== PER IMAGE FILE COMPUTATIONS ======================
+    
+    print("\nLooping through files...")
     for fn in files:
         bn = os.path.basename(fn).split(".")[0]
         print(f"\n-----------------------------\n Evaluating {bn}...\n-----------------------------")
 
-        # prepare file paths
+        #===================== IMAGES LOADING AND PREPROCESS ======================
         lenseless_fp = os.path.join(diffuser_dir, fn)
         log.add_param('lenseless_fp', lenseless_fp)
         if data == 'our_images':
@@ -132,6 +135,7 @@ def evaluate(data,
             if lenseless.shape != psf.shape:
                 # in DiffuserCam dataset, images are already reshaped
                 lenseless = resize(lenseless, 1 / downsample)
+        
         lenseless /= np.linalg.norm(lenseless.ravel())
 
         if gray:
@@ -148,6 +152,9 @@ def evaluate(data,
             log.add_param('recon_fp', save)
             log.add_param('ucrop_recon_fp', save_uncropped)
 
+        # =============================================================================
+        # ==================== INVERSE ESTIMATE =======================================
+        
         start = process_time()
         estimate, _, _ = optimize(algo, psf, lenseless, n_iter, lambda_, delta)
         stop = process_time()
@@ -158,6 +165,8 @@ def evaluate(data,
         else:
             estimate = estimate['iterand'].reshape(lenseless.shape)
 
+        # ========================== POSTPROCESS PLOTTING/SAVING ===============================
+
         # save and plot un-cropped reconstruction?
         ax = plot_image(estimate, gamma=gamma)
         ax.set_title("Uncropped reconstruction")
@@ -166,14 +175,12 @@ def evaluate(data,
             print(f"\nFiles saved to : {save_uncropped}")
 
         estimate = estimate[height_crops[bn][0]:height_crops[bn][1], width_crops[bn][0]:width_crops[bn][1]]
-        #estimate = (estimate - estimate.min()) / (estimate.max() - estimate.min())
 
         log.add_img_param("est_min", estimate.min())
         log.add_img_param("est_min", estimate.max())
 
         new_shape = estimate.shape[:2][::-1]
         lensed = cv2.resize(lensed, new_shape, interpolation=cv2.INTER_NEAREST)  # TODO: Check this!
-        #lensed = (lensed - lensed.min()) / (lensed.max() - lensed.min())
 
         print("\nGround truth shape:", lensed.shape)
         print("Reconstruction shape:", estimate.shape)
