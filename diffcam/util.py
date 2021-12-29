@@ -19,10 +19,9 @@ SUPPORTED_BIT_DEPTH = np.array([8, 10, 12, 16])
 FLOAT_DTYPES = [np.float32, np.float64]
 
 
-def load_pickle(path, file):
+def load_pickle(path):
     """Load pickle file"""
-    file_path = os.path.join(path,file)
-    with open(file_path, "rb") as f:
+    with open(path, "rb") as f:
         data = pickle.load(f)
     return data
 

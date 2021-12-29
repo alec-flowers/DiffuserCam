@@ -182,6 +182,8 @@ def evaluate(data,
         # save and plot reconstruction?
         ax = plot_image(estimate, gamma=gamma)
         ax.set_title("Reconstructed")
+
+        #TODO when saving images need to not save axes and title, want just the image itself
         if save:
             plt.savefig(save, format='png')
             npy_save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.npy')
