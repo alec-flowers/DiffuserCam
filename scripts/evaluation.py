@@ -9,6 +9,7 @@ from time import process_time
 
 from diffcam.plot import plot_image
 from diffcam.io import load_psf, load_image
+from diffcam.admm import ADMM
 from diffcam.metric import mse, psnr, ssim, lpips, LogMetrics
 from diffcam.util import DATAPATH, RECONSTRUCTIONPATH, print_image_info, resize, rgb2gray
 
@@ -156,24 +157,45 @@ def evaluate(data,
         # =============================================================================
         # ==================== INVERSE ESTIMATE =======================================
         
-        start = process_time()
-        estimate, _, _ = optimize(algo, psf, lenseless, n_iter, lambda_, delta)
-        stop = process_time()
-        log.add_img_param("process_time", stop - start)
+        if algo == "admm":
+            start_time = time.process_time()
+            recon = ADMM(psf.squeeze())
+            recon.set_data(lenseless.squeeze())
+            print(f"setup time : {time.process_time() - start_time} s")
 
-        if algo == 'pls':
-            estimate = estimate['primal_variable'].reshape(lenseless.shape)
+            start_time = time.process_time()
+            recon.apply(n_iter=n_iter, disp_iter=None, save=False, gamma=None, plot=False)
+            print(f"proc time : {time.process_time() - start_time} s")
+            
+            estimate = recon._form_image().squeeze()
+            
+            
         else:
-            estimate = estimate['iterand'].reshape(lenseless.shape)
+            start = process_time()
+            estimate, _, _ = optimize(algo, psf, lenseless, n_iter, lambda_, delta)
+            stop = process_time()
+            log.add_img_param("process_time", stop - start)
+
+            if algo == 'pls':
+                estimate = estimate['primal_variable'].reshape(lenseless.shape)
+            else:
+                estimate = estimate['iterand'].reshape(lenseless.shape)
+            estimate[estimate < 0] = 0.0
+            estimate = estimate.astype(dtype).squeeze()
+            
 
         # ========================== POSTPROCESS PLOTTING/SAVING ===============================
 
         # save and plot un-cropped reconstruction?
         ax, uncropped_img = plot_image(estimate, gamma=gamma, return_image=True)
+        
         ax.set_title("Uncropped reconstruction")
         if save:
             # plt.savefig(save_uncropped, format='png')
-            cv2.imwrite(str(save_uncropped), uncropped_img * 255) # Plotting the image only
+            if gray:
+                cv2.imwrite(str(save_uncropped), uncropped_img * 255)
+            else:
+                cv2.imwrite(str(save_uncropped), cv2.cvtColor(uncropped_img, cv2.COLOR_RGB2BGR) * 255)
             print(f"\nFiles saved to : {save_uncropped}")
 
         estimate = estimate[height_crops[bn][0]:height_crops[bn][1], width_crops[bn][0]:width_crops[bn][1]]
@@ -192,7 +214,10 @@ def evaluate(data,
         ax.set_title("Reconstructed")
         if save:
             # plt.savefig(save, format='png')
-            cv2.imwrite(str(save), cropped_img * 255)
+            if gray:
+                cv2.imwrite(str(save), cropped_img * 255)
+            else:
+                cv2.imwrite(str(save), cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR)* 255)
             npy_save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.npy')
             np.save(npy_save, estimate)
             print(f"\nFiles saved to : {save}")
@@ -228,8 +253,8 @@ def evaluate(data,
 if __name__ == '__main__':
     data = 'our_images'
     n_files = 3          # None yields all :-)
-    algo = 'ridge'
-    n_iter = 10
+    algo = 'glasso'
+    n_iter = 200
     gray = False
     downsample = 4
     disp = 50
