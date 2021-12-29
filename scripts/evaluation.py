@@ -57,11 +57,19 @@ def evaluate(data,
              bg_pix=(5, 25),
              ):
     assert data is not None
+    if isinstance(n_iter, int):
+        n_iters = [n_iter]
+    elif isinstance(n_iter, list) and isinstance(n_iter[0], int):
+        n_iters = n_iter
+    else:
+        raise ValueError("n_iter should be an int value or a non empty list of int")
+    n_iter = None
+    
     log = LogMetrics()
     log.add_param('data', data)
     log.add_param('psf_fp', psf_fp)
     log.add_param('algo', algo)
-    log.add_param('n_iter', n_iter)
+    log.add_param('n_iter', n_iters)
     log.add_param('gray', gray)
     log.add_param('lambda', lambda_)
     log.add_param('delta', delta)
@@ -102,8 +110,9 @@ def evaluate(data,
     print_image_info(psf)
     if gray:
         psf = rgb2gray(psf)[:, :, np.newaxis]
-
-
+    
+    
+    
     #===================== PER IMAGE FILE COMPUTATIONS ======================
     
     print("\nLooping through files...")
@@ -112,41 +121,52 @@ def evaluate(data,
         print(f"\n-----------------------------\n Evaluating {bn}...\n-----------------------------")
 
         #===================== IMAGES LOADING AND PREPROCESS ==================
-
-        lensed, lenseless = load_lensed_lenseless(lensed_dir, diffuser_dir, fn,
+    
+        lenseless_fp = os.path.join(diffuser_dir, fn)
+        if data == 'our_images':
+            lensed_fp = os.path.join(lensed_dir, "_".join([fn.split("_")[0], 'original.png']))
+        else:
+            lensed_fp = os.path.join(lensed_dir, fn)
+    
+        lensed, lenseless = load_lensed_lenseless(lensed_fp, lenseless_fp,  
                                                 psf, background, bn,
-                                                gray, data, flip, bayer,
-                                                bg, rg, downsample,
-                                                dtype,log)
+                                                gray, data, flip, bayer, 
+                                                bg, rg, downsample, dtype)
 
         # ==================== INVERSE ESTIMATE ===============================
+        
+        estimates, elapsed_times = inverse_estimate(algo, psf, lenseless, n_iters, lambda_, delta, dtype)
+        
+        # Loop, in case we have more than one n_iter (to checkpoint optimization through various steps)
+        total_iter = 0
+        for n, estimate, elapsed_time in zip(n_iters, estimates, elapsed_times):
+            # =============== POSTPROCESS + PLOTTING/SAVING =======================
+            total_iter += n
+            ax, uncropped_img = plot_image(estimate, gamma=gamma, return_image=True)
+            ax.set_title("Uncropped reconstruction")
 
-        estimate = inverse_estimate(algo, psf, lenseless, n_iter, lambda_, delta, dtype, log)
-
-        # =============== POSTPROCESS + PLOTTING/SAVING =======================
-
-        ax, uncropped_img = plot_image(estimate, gamma=gamma, return_image=True)
-        ax.set_title("Uncropped reconstruction")
-
-        cropped_estimate = estimate[HEIGHT_CROPS[bn][0]:HEIGHT_CROPS[bn][1], WIDTH_CROPS[bn][0]:WIDTH_CROPS[bn][1]]
-
-        ax, cropped_img = plot_image(cropped_estimate, gamma=gamma, return_image=True)
-        ax.set_title("Reconstructed")
-
-        print("Reconstruction shape:", cropped_estimate.shape)
-
-        if save:
-            save_results(algo, uncropped_img, cropped_img, cropped_estimate, gray, n_iter, bn, log)
-
-        # plot images
-        if plot:
-            show_results(psf, lensed, lenseless, gamma)
-
-        log.add_img_param("est_min", cropped_estimate.min())
-        log.add_img_param("est_max", cropped_estimate.max())
-        log.calculate_metrics(lensed, cropped_estimate)
-        log.save_metrics(bn)
-        log.print_metrics()
+            cropped_estimate = estimate[HEIGHT_CROPS[bn][0]:HEIGHT_CROPS[bn][1], WIDTH_CROPS[bn][0]:WIDTH_CROPS[bn][1]]
+            
+            ax, cropped_img = plot_image(cropped_estimate, gamma=gamma, return_image=True)
+            ax.set_title("Reconstructed")
+            
+            print("Reconstruction shape:", cropped_estimate.shape)
+            
+            if save:
+                save_results(algo, uncropped_img, cropped_img, cropped_estimate, gray, total_iter, bn, log)
+            
+            # plot images
+            if plot:
+                show_results(psf, lensed, lenseless, gamma)
+                
+            log.add_img_param("process_time", elapsed_time)
+            log.add_img_param('lenseless_fp', lenseless_fp)
+            log.add_img_param('lensed_fp', lensed_fp)
+            log.add_img_param("est_min", cropped_estimate.min())
+            log.add_img_param("est_max", cropped_estimate.max())
+            log.calculate_metrics(lensed, cropped_estimate)
+            log.save_metrics(bn)
+            log.print_metrics()
 
     log.save_metric_list()
     log.print_average_metrics()
@@ -156,19 +176,10 @@ def evaluate(data,
 
     return log
 
-def load_lensed_lenseless(lensed_dir, diffuser_dir, fn,
+def load_lensed_lenseless(lensed_fp, lenseless_fp,  
                           psf, background, bn,
-                          gray, data, flip, bayer,
-                          bg, rg, downsample,
-                          dtype,log):
-
-    lenseless_fp = os.path.join(diffuser_dir, fn)
-    log.add_img_param('lenseless_fp', lenseless_fp)
-    if data == 'our_images':
-        lensed_fp = os.path.join(lensed_dir, "_".join([fn.split("_")[0], 'original.png']))
-    else:
-        lensed_fp = os.path.join(lensed_dir, fn)
-    log.add_img_param('lensed_fp', lensed_fp)
+                          gray, data, flip, bayer, 
+                          bg, rg, downsample, dtype):
 
     # load ground truth image
     lensed = load_image(lensed_fp, flip=flip, bayer=bayer, blue_gain=bg, red_gain=rg)
@@ -185,51 +196,48 @@ def load_lensed_lenseless(lensed_dir, diffuser_dir, fn,
         if lenseless.shape != psf.shape:
             # in DiffuserCam dataset, images are already reshaped
             lenseless = resize(lenseless, 1 / downsample)
-
+    
     lenseless /= np.linalg.norm(lenseless.ravel())
-
+    
     if gray:
         lenseless = rgb2gray(lenseless)
         lensed = rgb2gray(lensed)
     new_shape = (WIDTH_CROPS[bn][1] - WIDTH_CROPS[bn][0], HEIGHT_CROPS[bn][1] - HEIGHT_CROPS[bn][0])
     lensed = cv2.resize(lensed, new_shape, interpolation=cv2.INTER_AREA)
-
+    
     return lensed, lenseless
 
-def inverse_estimate(algo, psf, lenseless, n_iter, lambda_, delta, dtype, log):
+def inverse_estimate(algo, psf, lenseless, n_iters, lambda_, delta, dtype):
+    estimates = []
+    elapsed_times = []
+    
     if algo == "admm":
-        start_time = time.process_time()
+        start_time = process_time()
         recon = ADMM(psf.squeeze())
         recon.set_data(lenseless.squeeze())
         print(f"setup time : {time.process_time() - start_time} s")
 
-        start_time = time.process_time()
-        recon.apply(n_iter=n_iter, disp_iter=None, save=False, gamma=None, plot=False)
-        print(f"proc time : {time.process_time() - start_time} s")
-        
-        estimate = recon._form_image().squeeze()
+        proc_start_time = time.process_time()
+        for n in n_iters:
+            for _ in range(n):
+                recon._update()
+            elapsed_time = time.process_time() - start_time
+            print(f"proc time : {time.process_time() - proc_start_time} s")
+            elapsed_times.append(elapsed_time)
+            estimates.append(recon._form_image().squeeze())
     else:
-        start = process_time()
-        estimate, _, _ = optimize(algo, psf, lenseless, n_iter, lambda_, delta)
-        stop = process_time()
-        log.add_img_param("process_time", stop - start)
+        estimates, elapsed_times = optimize(algo, psf, lenseless, n_iters, dtype, lambda_, delta)
+        
+    
+    return estimates, elapsed_times
 
-        if algo == 'pls':
-            estimate = estimate['primal_variable'].reshape(lenseless.shape)
-        else:
-            estimate = estimate['iterand'].reshape(lenseless.shape)
-        estimate[estimate < 0] = 0.0
-        estimate = estimate.astype(dtype).squeeze()
-    return estimate
-
-
-def save_results(algo, uncropped_img, cropped_img, cropped_estimate, gray, n_iter, bn, log):
+def save_results(algo, uncropped_img, cropped_img, cropped_estimate, gray, n_iter, bn, log):     
     timestamp = datetime.now().strftime("_%d%m%d%Y_%Hh%M")
     save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
     save_uncropped = RECONSTRUCTIONPATH / str('uncropped_' + bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
     log.add_img_param('recon_fp', save)
     log.add_img_param('ucrop_recon_fp', save_uncropped)
-    # plt.savefig(save, format='png')
+    
     if gray:
         cv2.imwrite(str(save_uncropped), uncropped_img * 255)
         cv2.imwrite(str(save), cropped_img * 255)
@@ -257,7 +265,7 @@ if __name__ == '__main__':
     data = 'our_images'
     n_files = 1          # None yields all :-)
     algo = 'glasso'
-    n_iter = 10
+    n_iter = [10, 10, 10, 10]
     gray = False
     downsample = 4
     disp = 50
