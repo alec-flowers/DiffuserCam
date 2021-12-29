@@ -30,16 +30,13 @@ def multiple_runs(parameters):
 if __name__ == "__main__":
     parameters = {
         "data": ['our_images'],
-        "n_files": [None],  # None yields all :-)
-        "algo": [
-                 "nnls", "nnls", "nnls", "nnls", "nnls", "nnls", "nnls", "nnls", "nnls",
-                 "pls", "pls", "pls", "pls", "pls", "pls", "pls", "pls", "pls"
-                 ],
-        "lambda_": [.0000001, .000001, .00001, .0001, .001, .01, .1, 1, 10]*2,
+        "n_files": [1],  # None yields all :-)
+        "algo": ["pls", "pls", "pls",
+                 "pls_huber","pls_huber", "pls_huber",
+                 "lasso", "lasso", "lasso"],
+        "lambda_": [.1, .2, .3]*3,
         "delta": [1],
-        "n_iter": [
-                   100, 100, 100, 100, 100, 100, 100, 100, 100,
-                   100, 100, 100, 100, 100, 100, 100, 100, 100,],
+        "n_iter": [1000],
         "gray": [False],
         "downsample": [4],
         "disp": [50],

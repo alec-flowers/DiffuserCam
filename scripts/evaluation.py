@@ -61,7 +61,8 @@ def evaluate(data,
     # list of all files
     files = glob.glob(diffuser_dir + f"/*.{filetype}")
     if n_files:
-        files = files[:n_files]
+        # TODO change back...
+        files = [files[n_files]]
     files = [os.path.basename(fn) for fn in files]
     print("\nNumber of files : ", len(files))
 
