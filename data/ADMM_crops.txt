@@ -1,0 +1,17 @@
+bash:
+python scripts/admm.py --psf_fp data/psf/psf_rgb_ours.png --data_fp data/our_images/diffuser/img1_rgb.png --n_iter 10
+
+
+img1: h = (179, 407) , w = (328, 669)
+
+img3: h = (179, 395) , w = (317, 681)
+
+img4: h = (181, 385) , w = (315, 683)
+
+img5: h = (183, 414) , w = (416, 585)	# to hard to see but same h/w ratio as img 7 so same boundaries used
+
+img6: h = (179, 399) , w = (323, 679)
+
+img7: h = (183, 414) , w = (416, 585)
+	
+img8: h = (181, 410) , w = (326, 671)
