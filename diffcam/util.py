@@ -11,9 +11,14 @@ assert (REPO_ROOT.exists())
 DATAPATH = (REPO_ROOT / "data").absolute().resolve()
 assert (DATAPATH.exists())
 RECONSTRUCTIONPATH = (DATAPATH / "reconstruction").absolute().resolve()
-assert (RECONSTRUCTIONPATH.exists()), "Create a folder named 'reconstruction' under the data folder. This is where our reconstructed images are saved."
+isExist = os.path.exists(RECONSTRUCTIONPATH)
+if not isExist:
+    # Create a new directory because it does not exist
+    os.makedirs(RECONSTRUCTIONPATH)
+    print("The new directory is created!")
+
 LOGPATH = (DATAPATH / "logs").absolute().resolve()
-assert (RECONSTRUCTIONPATH.exists()), "Create a folder named 'logs' under the data folder. This is where our logs are saved."
+assert (LOGPATH.exists()), "Create a folder named 'logs' under the data folder. This is where our logs are saved."
 
 SUPPORTED_BIT_DEPTH = np.array([8, 10, 12, 16])
 FLOAT_DTYPES = [np.float32, np.float64]
