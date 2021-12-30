@@ -71,7 +71,7 @@ def evaluate(data,
     log.add_param('gray', gray)
     log.add_param('lambda', lambda_)
     log.add_param('delta', delta)
-
+    log.add_param('n_iter', n_iters)
     #===================== FILENAME MANAGEMENT ===================
     
     # determining data paths
@@ -140,7 +140,6 @@ def evaluate(data,
         for n, estimate, elapsed_time in zip(n_iters, estimates, elapsed_times):
             
             total_iter += n
-            log.add_param('n_iter', total_iter)
             ax, uncropped_img = plot_image(estimate, gamma=gamma, return_image=True)
             ax.set_title("Uncropped reconstruction")
 
@@ -158,20 +157,18 @@ def evaluate(data,
             if plot:
                 show_results(psf, lensed, lenseless, gamma)
                 
-            log.add_img_param("process_time", elapsed_time)
-            log.add_img_param('lenseless_fp', lenseless_fp)
-            log.add_img_param('lensed_fp', lensed_fp)
-            log.add_img_param("est_min", cropped_estimate.min())
-            log.add_img_param("est_max", cropped_estimate.max())
+            log.add_iter_param("process_time", elapsed_time)
+            log.add_iter_param('lenseless_fp', lenseless_fp)
+            log.add_iter_param('lensed_fp', lensed_fp)
+            log.add_iter_param("est_min", cropped_estimate.min())
+            log.add_iter_param("est_max", cropped_estimate.max())
             log.calculate_metrics(lensed, cropped_estimate)
-            log.save_metrics(bn)
+            log.save_metrics(total_iter)
             log.print_metrics()
 
-            log.save_metric_list()
-            log.print_average_metrics()
-
-            if save:
-                log.save_logs()
+        log.save_metric_list(bn)
+    if save:
+        log.save_logs()
 
     return log
 
@@ -234,8 +231,8 @@ def save_results(algo, uncropped_img, cropped_img, cropped_estimate, gray, n_ite
     timestamp = datetime.now().strftime("_%d%m%d%Y_%Hh%M")
     save = RECONSTRUCTIONPATH / str(bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
     save_uncropped = RECONSTRUCTIONPATH / str('uncropped_' + bn.split("_")[0] + '_' + algo + '_' + str(n_iter) + timestamp + '.png')
-    log.add_img_param('recon_fp', save)
-    log.add_img_param('ucrop_recon_fp', save_uncropped)
+    log.add_iter_param('recon_fp', save)
+    log.add_iter_param('ucrop_recon_fp', save_uncropped)
     
     if gray:
         cv2.imwrite(str(save_uncropped), uncropped_img * 255)

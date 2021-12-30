@@ -31,10 +31,10 @@ if __name__ == "__main__":
     parameters = {
         "data": ['our_images'],
         "n_files": [None],
-        "algo": ["lasso", "ridge", "nnls", "glasso"],
-        "lambda_": [.000001, .001, .01, .0000001],
+        "algo": ["admm"],
+        "lambda_": [1],
         "delta": [1],
-        "n_iter": [[250, 250, 250, 250], [250, 250, 250, 250], [250, 250, 250, 250], [250, 250, 250, 250]],
+        "n_iter": [[10, 10, 10, 10]],
         "gray": [False],
         "downsample": [4],
         "disp": [50],

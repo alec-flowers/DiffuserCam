@@ -49,6 +49,7 @@ class LogMetrics():
     def __init__(self):
         self.save = {}
         self.per_image = {}
+        self.per_iter = {}
         self.mse_scores = []
         self.psnr_scores = []
         self.ssim_scores = []
@@ -56,6 +57,9 @@ class LogMetrics():
 
     def add_param(self, key, value):
         self.save[key] = value
+
+    def add_iter_param(self, key, value):
+        self.per_iter[key] = value
 
     def add_img_param(self, key, value):
         self.per_image[key] = value
@@ -71,18 +75,20 @@ class LogMetrics():
         else:
             self.ssim_scores.append(ssim(lensed, estimate))
 
-    def save_metrics(self, photo):
-        self.add_img_param("mse", self.mse_scores[-1])
-        self.add_img_param("psnr", self.psnr_scores[-1])
-        self.add_img_param("ssim", self.ssim_scores[-1])
-        self.add_img_param("lpips", self.lpips_scores[-1])
+    def save_metrics(self, total_iter):
+        self.add_iter_param("mse", self.mse_scores[-1])
+        self.add_iter_param("psnr", self.psnr_scores[-1])
+        self.add_iter_param("ssim", self.ssim_scores[-1])
+        self.add_iter_param("lpips", self.lpips_scores[-1])
 
-        self.add_param(photo, self.per_image)
-
-        self.reset_per_image()
+        self.add_img_param(str(total_iter), self.per_iter)
+        self.reset_per_iter()
 
     def reset_per_image(self):
         self.per_image = {}
+
+    def reset_per_iter(self):
+        self.per_iter = {}
 
     def print_metrics(self):
         print(f"\nMSE: {self.mse_scores[-1]}")
@@ -90,11 +96,14 @@ class LogMetrics():
         print(f"\nSSIM: {self.ssim_scores[-1]}")
         print(f"\nLPIPS: {self.lpips_scores[-1]}")
 
-    def save_metric_list(self):
+    def save_metric_list(self, bn):
         self.add_param("mse", self.mse_scores)
         self.add_param("psnr", self.psnr_scores)
         self.add_param("ssim", self.ssim_scores)
         self.add_param("lpips", self.lpips_scores)
+
+        self.add_param(bn, self.per_image)
+        self.reset_per_image()
 
     def print_average_metrics(self):
         print("\n-----------------------------\n Average scores \n-----------------------------")
