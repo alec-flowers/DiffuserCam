@@ -30,11 +30,11 @@ def multiple_runs(parameters):
 if __name__ == "__main__":
     parameters = {
         "data": ['our_images'],
-        "n_files": [1],  # None yields all :-)
-        "algo": ["pls"],
-        "lambda_": [.25, .2, .3]*1,
-        "delta": [222],
-        "n_iter": [[10,10,10]],
+        "n_files": [None],
+        "algo": ["lasso", "ridge", "nnls", "glasso"],
+        "lambda_": [.000001, .001, .01, .0000001],
+        "delta": [1],
+        "n_iter": [[250, 250, 250, 250], [250, 250, 250, 250], [250, 250, 250, 250], [250, 250, 250, 250]],
         "gray": [False],
         "downsample": [4],
         "disp": [50],
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         "rg": [None],
         "gamma": [None],
         "save": [True],
-        "plot": [True],
+        "plot": [False],
         "single_psf": [False],
         "psf_fp": [rf'{str(DATAPATH)}{os.sep}psf{os.sep}psf_rgb_ours.png'],
     }
