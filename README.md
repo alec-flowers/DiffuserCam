@@ -16,9 +16,8 @@ You can run a showcase of our image reconstruction:
 These are the files that we changed in the course of working on the project. 
 
 **scripts**
-* `evaluation.py` - controls loading in all the proper files and data, passing them to `optimization.py`, collecting
-outputs and saving them.
-* `evaluation_bash.py` - Bash verion of evaluation using click
+* `evaluation.py` - controls loading in all the proper files and data, then compute using methods of `optimization.py` `admm.py`, collecting outputs and saving them.
+* `evaluation_bash.py` - Bash version of evaluation using click
 * `optimization.py` - We use the [Pyscou](https://github.com/matthieumeo/pycsou) framework to build regularized linear inverse problems and solve them using APGD or PDS. 
 * `functionals.py` - We defined a DCT2 functional and an OptiConvolve2D functional.
 * `run.py` - This file automates multiple runs of evalution() with a flexible system of adding parameters to lists. 

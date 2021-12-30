@@ -7,9 +7,28 @@ from pycsou.opt.proxalgs import APGD, PDS
 from pycsou.linop.diff import Gradient
 
 from scripts.functionals import DCT2, HuberNorm, OptiConvolve2D
-from scipy.fftpack import dctn, idctn
 
 def optimize(method, psf, data, n_iters, dtype, lambda_=0.1, delta=1):
+    """Setup and run the required optimization.
+
+    Args:
+        method (str): can be "ridge", "lasso", "glasso", "nnls", "pls", "pls_huber"
+        psf (np.ndarray): the point spread function.
+        data (np.ndarray): the measurement from which the estimate will be computed.
+        n_iters (Union(int, list(int))): the maximum number of iteration to run the optimization.
+            Alternatively, the list of successive iterations to run and to checkpoint.
+        dtype (np.dtype): data type of structure.
+        lambda_ (float, optional): Penalty weight in optimization. 
+            Defaults to 0.1.
+        delta (int, optional): Delta parameter of Huber norm, defines the absolute threshold 
+            for the transition between L1 and L2 norm blending. 
+            Defaults to 1.
+
+    Returns:
+        tuple(list(np.ndarray),list(float)): list of estimates and list of elapsed times. 
+            They will be lists of 1 element even though n_iters is a single value. Otherwise
+            they will be lists with the same length as n_iters.
+    """
     estimates = []
     elapsed_times = []
     
@@ -42,6 +61,28 @@ def optimize(method, psf, data, n_iters, dtype, lambda_=0.1, delta=1):
     return estimates, elapsed_times
 
 def get_runner(method, psf, data, n_iter, lambda_, delta):
+    """Setup the runner and post process function and return it.
+
+    Args:
+        method (str): can be "ridge", "lasso", "glasso", "nnls", "pls", "pls_huber"
+        delta ([type]): [description]
+        psf (np.ndarray): the point spread function.
+        data (np.ndarray): the measurement from which the estimate will be computed.
+        n_iter (int): the maximum number of iteration to run the optimization.
+        lambda_ (float, optional): Penalty weight in optimization. 
+            Defaults to 0.1.
+        delta (int, optional): Delta parameter of Huber norm, defines the absolute threshold 
+            for the transition between L1 and L2 norm blending. 
+            Defaults to 1.
+        
+    Raises:
+        ValueError: method is not correct.
+        ValueError: huber needs non-None delta.
+
+    Returns:
+        tuple(runner, function): Returns a pycsou runner full setup + a post process function 
+            in case data needs it after optimization.
+    """
     Hop = OptiConvolve2D(psf)
     Hop.compute_lipschitz_cst(tol=5e-2)
     
@@ -83,7 +124,7 @@ def get_runner(method, psf, data, n_iter, lambda_, delta):
         F += lambda_ * HuberNorm(dim=D.shape[0], delta=delta) * D  # Differentiable function
         G = NonNegativeOrthant(dim=Hop.shape[0])
     else:
-        raise AttributeError("Reconstruction algorithm not defined.")
+        raise ValueError("Reconstruction algorithm not defined.")
     
     #====================== OPTIMIZATION METHOD =======================
     

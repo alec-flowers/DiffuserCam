@@ -8,7 +8,13 @@ import numpy as np
 
 
 class DCT2(LinearOperator):
+
     def __init__(self, shape: tuple ):
+        """DCT of type 2 pycsou linear operator.
+
+        Args:
+            shape (tuple): The shape of the input of DCT.
+        """
         self.origshape = shape
         self.size = (np.prod(shape), np.prod(shape))
         super(DCT2, self).__init__(shape=self.size)
@@ -21,6 +27,15 @@ class DCT2(LinearOperator):
 
 class OptiConvolve2D(LinearOperator):
     def __init__(self, psf:np.ndarray):
+        """Optimized Convolve 2D pycsou linear operator. Assumes psf and inputs have 
+            all the same size. Manage gray and color images.
+
+        Args:
+            psf (np.ndarray): The PSF used as filter for linear inverse problem optimization.
+                Takes shape such as (height, width, channels).
+                Depending on the situation, it can be good to pass channels = 1 even 
+                for gray images and make sure shape has 3 elements.
+        """
         
         super(OptiConvolve2D, self).__init__(shape=(psf.size, psf.size), dtype=psf.dtype, lipschitz_cst=np.infty)
         self.origshape = np.array(psf.shape)
@@ -55,7 +70,15 @@ class OptiConvolve2D(LinearOperator):
 
 
 class HuberNorm(DifferentiableFunctional):
+    
     def __init__(self, dim: int, delta: float):
+        """Functional defining the Huber norm.
+
+        Args:
+            dim (int): Dimension of the functional’s domain.
+            delta (float): Delta parameter of Huber norm, defines the absolute threshold 
+                for the transition between L1 and L2 norm blending.
+        """
         self.delta = delta
         super().__init__(dim=dim, data=None, is_linear=False, lipschitz_cst=np.infty, diff_lipschitz_cst=1)
 
